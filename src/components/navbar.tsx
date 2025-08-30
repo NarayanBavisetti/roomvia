@@ -9,12 +9,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { User, Menu } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Menu, Plus, LogOut, UserIcon } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/auth-context'
+import LoginModal from '@/components/auth/login-modal'
+import OTPModal from '@/components/auth/otp-modal'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showOTPModal, setShowOTPModal] = useState(false)
+  const [otpContact, setOtpContact] = useState('')
+  const [otpType, setOtpType] = useState<'email' | 'sms'>('email')
+
+  const { user, loading, signOut } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,6 +37,30 @@ export default function Navbar() {
       return () => window.removeEventListener('scroll', handleScroll)
     }
   }, [])
+
+  const handleOTPSent = (contact: string, type: 'email' | 'sms') => {
+    setOtpContact(contact)
+    setOtpType(type)
+    setShowOTPModal(true)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
+
+  const getUserInitials = (user: { email?: string; phone?: string }) => {
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase()
+    }
+    if (user?.phone) {
+      return user.phone.slice(-2)
+    }
+    return 'U'
+  }
 
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
@@ -54,24 +88,66 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" className="font-medium">
-              Login
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>My Listings</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="hidden md:flex items-center space-x-3">
+            <Link href="/add-listing">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Listing
+              </Button>
+            </Link>
+            
+            {loading ? (
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                        {getUserInitials(user)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user.email && (
+                        <p className="font-medium">{user.email}</p>
+                      )}
+                      {user.phone && !user.email && (
+                        <p className="font-medium">{user.phone}</p>
+                      )}
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {user.email || user.phone || 'User'}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <Link href="/profile">
+                    <DropdownMenuItem>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem>My Listings</DropdownMenuItem>
+                  <DropdownMenuItem>Settings</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="font-medium"
+                onClick={() => setShowLoginModal(true)}
+              >
+                Login
+              </Button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -96,18 +172,79 @@ export default function Navbar() {
               <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
                 Flatmates
               </Link>
-              <div className="border-t border-gray-200 pt-4">
-                <Button variant="ghost" className="w-full justify-start font-medium">
-                  Login
+              <Link href="/add-listing" className="block px-3 py-2">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Listing
                 </Button>
-                <Button variant="ghost" className="w-full justify-start font-medium">
-                  Sign up
-                </Button>
+              </Link>
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                {loading ? (
+                  <div className="w-full h-8 bg-gray-200 rounded animate-pulse" />
+                ) : user ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                          {getUserInitials(user)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {user.email || user.phone || 'User'}
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/profile">
+                      <Button variant="ghost" className="w-full justify-start font-medium">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        Profile
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" className="w-full justify-start font-medium">
+                      My Listings
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start font-medium"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Login
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Auth Modals */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onOTPSent={handleOTPSent}
+      />
+      
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => setShowOTPModal(false)}
+        onBack={() => {
+          setShowOTPModal(false)
+          setShowLoginModal(true)
+        }}
+        contact={otpContact}
+        type={otpType}
+      />
     </nav>
   )
 }

@@ -26,7 +26,7 @@ interface FlatmateCardProps {
   onConnect?: () => void
 }
 
-const amenityIcons: Record<string, JSX.Element> = {
+const amenityIcons: Record<string, React.ReactElement> = {
   'WiFi': <Wifi className="h-3 w-3" />,
   'Parking': <Car className="h-3 w-3" />,
   'Gym': <Dumbbell className="h-3 w-3" />,

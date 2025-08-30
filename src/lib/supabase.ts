@@ -32,3 +32,30 @@ export type Flatmate = {
   image_url: string
   created_at: string
 }
+
+export type FlatmatePreferences = {
+  gender: string
+  smoker: boolean
+  food: string
+  pets: boolean
+}
+
+export type Listing = {
+  id: string
+  user_type: 'normal' | 'broker'
+  title: string
+  property_type: string
+  location: string
+  area_sqft?: number
+  floor?: number
+  description?: string
+  highlights: string[]
+  rent: number
+  maintenance?: number
+  security_deposit: number
+  expenses?: string
+  flatmate_preferences: FlatmatePreferences
+  contact_number: string
+  image_urls: string[]
+  created_at: string
+}
