@@ -10,9 +10,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useChat } from '@/contexts/chat-context'
 import LoginModal from '@/components/auth/login-modal'
 import OTPModal from '@/components/auth/otp-modal'
 
@@ -25,6 +26,7 @@ export default function Navbar() {
   const [otpType, setOtpType] = useState<'email' | 'sms'>('email')
 
   const { user, loading, signOut } = useAuth()
+  const { toggleSidebar, chatList } = useChat()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,6 +91,22 @@ export default function Navbar() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-3">
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="relative h-9 w-9 hover:bg-gray-100 transition-colors"
+              >
+                <MessageCircle className="h-5 w-5 text-gray-600" />
+                {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {Math.min(chatList.reduce((acc, chat) => acc + chat.unread_count, 0), 9)}
+                  </span>
+                )}
+              </Button>
+            )}
+            
             <Link href="/add-listing">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors">
                 <Plus className="h-4 w-4 mr-2" />
@@ -195,6 +213,19 @@ export default function Navbar() {
                         </p>
                       </div>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start font-medium"
+                      onClick={toggleSidebar}
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
+                      {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                          {Math.min(chatList.reduce((acc, chat) => acc + chat.unread_count, 0), 9)}
+                        </span>
+                      )}
+                    </Button>
                     <Link href="/profile">
                       <Button variant="ghost" className="w-full justify-start font-medium">
                         <UserIcon className="mr-2 h-4 w-4" />

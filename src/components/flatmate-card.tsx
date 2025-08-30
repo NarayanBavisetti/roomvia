@@ -19,6 +19,8 @@ import {
   Utensils
 } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { useChat } from '@/contexts/chat-context'
 import type { Flatmate } from '@/lib/supabase'
 
 interface FlatmateCardProps {
@@ -54,6 +56,23 @@ const getFoodIcon = (preference: string) => {
 export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const { user } = useAuth()
+  const { openChat } = useChat()
+
+  // Mock flatmate data - in real app this would be the actual user
+  const flatmateEmail = `${flatmate.name.toLowerCase().replace(' ', '.')}@example.com`
+
+  const handleConnect = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!user) {
+      alert('Please login to connect with flatmates')
+      return
+    }
+    
+    // Use the flatmate ID as the user ID for chat
+    openChat(flatmate.id, flatmateEmail)
+    onConnect?.()
+  }
 
   return (
     <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200 hover:scale-[1.02] transform">
@@ -199,10 +218,7 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
         {/* Connect button */}
         <Button 
-          onClick={(e) => {
-            e.stopPropagation()
-            onConnect?.()
-          }}
+          onClick={handleConnect}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 text-sm rounded-lg transition-colors"
         >
           Connect

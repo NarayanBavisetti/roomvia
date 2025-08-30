@@ -2,8 +2,11 @@
 
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Heart } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { MapPin, Heart, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { useChat } from '@/contexts/chat-context'
 import type { Flat } from '@/lib/supabase'
 
 interface FlatCardProps {
@@ -14,6 +17,24 @@ interface FlatCardProps {
 export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const { user } = useAuth()
+  const { openChat } = useChat()
+
+  // Mock owner data - in real app this would come from the flat object
+  const ownerEmail = `owner_${flat.id}@example.com`
+
+  const handleMessageOwner = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!user) {
+      // Could show login modal here
+      alert('Please login to message the owner')
+      return
+    }
+    
+    // Generate a mock owner ID based on flat ID
+    const ownerId = `owner_${flat.id}`
+    openChat(ownerId, ownerEmail)
+  }
 
   return (
     <div 
@@ -85,7 +106,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {flat.tags.slice(0, 3).map((tag, index) => (
             <Badge 
               key={index}
@@ -104,6 +125,17 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
             </Badge>
           )}
         </div>
+
+        {/* Message Owner Button */}
+        <Button
+          onClick={handleMessageOwner}
+          variant="outline"
+          size="sm"
+          className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+        >
+          <MessageCircle className="h-4 w-4 mr-2" />
+          Message Owner
+        </Button>
       </div>
     </div>
   )

@@ -59,3 +59,32 @@ export type Listing = {
   image_urls: string[]
   created_at: string
 }
+
+export type Message = {
+  id: string
+  sender_id: string
+  receiver_id: string
+  message_text: string
+  created_at: string
+  updated_at: string
+  is_read: boolean
+}
+
+export type ChatListItem = {
+  other_user_id: string
+  other_user_email: string | null
+  latest_message: string | null
+  latest_message_time: string | null
+  unread_count: number
+  is_sender: boolean
+}
+
+export type ConversationMessage = {
+  id: string
+  sender_id: string
+  receiver_id: string
+  message_text: string
+  created_at: string
+  is_read: boolean
+  sender_email: string | null
+}
