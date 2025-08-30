@@ -83,7 +83,7 @@ export default function LoginModal({ isOpen, onClose, onOTPSent }: LoginModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] p-0">
+      <DialogContent className="sm:max-w-[425px] p-0" showCloseButton={false}>
         <DialogHeader className="px-6 pt-6 pb-2">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-semibold">Welcome to Roomvia</DialogTitle>

@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Menu, Plus, LogOut, UserIcon, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import LoginModal from '@/components/auth/login-modal'
@@ -27,6 +28,10 @@ export default function Navbar() {
 
   const { user, loading, signOut } = useAuth()
   const { toggleSidebar, chatList } = useChat()
+  const pathname = usePathname()
+  const isFlatmatesSection = pathname?.startsWith('/flatmates')
+  const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
+  const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,7 +41,12 @@ export default function Navbar() {
     // Only add scroll listener on client side
     if (typeof window !== 'undefined') {
       window.addEventListener('scroll', handleScroll)
-      return () => window.removeEventListener('scroll', handleScroll)
+      const openLogin = () => setShowLoginModal(true)
+      window.addEventListener('open-login-modal', openLogin as EventListener)
+      return () => {
+        window.removeEventListener('scroll', handleScroll)
+        window.removeEventListener('open-login-modal', openLogin as EventListener)
+      }
     }
   }, [])
 
@@ -107,10 +117,10 @@ export default function Navbar() {
               </Button>
             )}
             
-            <Link href="/add-listing">
+            <Link href={ctaHref}>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Listing
+                {ctaLabel}
               </Button>
             </Link>
             
@@ -190,10 +200,10 @@ export default function Navbar() {
               <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
                 Flatmates
               </Link>
-              <Link href="/add-listing" className="block px-3 py-2">
+              <Link href={ctaHref} className="block px-3 py-2">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Listing
+                  {ctaLabel}
                 </Button>
               </Link>
               <div className="border-t border-gray-200 pt-4 mt-4">

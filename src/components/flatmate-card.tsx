@@ -65,7 +65,10 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
   const handleConnect = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!user) {
-      alert('Please login to connect with flatmates')
+      // Open login modal globally if not authenticated
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
       return
     }
     

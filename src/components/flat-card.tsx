@@ -26,14 +26,23 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const handleMessageOwner = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!user) {
-      // Could show login modal here
-      alert('Please login to message the owner')
+      // Open login modal globally if not authenticated
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
       return
     }
     
     // Generate a mock owner ID based on flat ID
     const ownerId = `owner_${flat.id}`
     openChat(ownerId, ownerEmail)
+  }
+
+  const handleGetDirections = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const destination = encodeURIComponent(flat.location)
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`
+    window.open(url, '_blank')
   }
 
   return (
@@ -126,16 +135,27 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           )}
         </div>
 
-        {/* Message Owner Button */}
-        <Button
-          onClick={handleMessageOwner}
-          variant="outline"
-          size="sm"
-          className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-        >
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Message Owner
-        </Button>
+        {/* Actions */}
+        <div className="flex gap-2">
+          <Button
+            onClick={handleMessageOwner}
+            variant="outline"
+            size="sm"
+            className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Chat
+          </Button>
+          <Button
+            onClick={handleGetDirections}
+            variant="secondary"
+            size="sm"
+            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200"
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Get directions
+          </Button>
+        </div>
       </div>
     </div>
   )
