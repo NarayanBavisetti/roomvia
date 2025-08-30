@@ -6,6 +6,7 @@ import SearchBar from '@/components/search-bar'
 import FilterBar from '@/components/filter-bar'
 import FlatCard from '@/components/flat-card'
 import { supabase, type Flat } from '@/lib/supabase'
+import MapView from '@/components/map-view'
 
 // Mock data for development (replace with Supabase data when configured)
 // Using fixed timestamp to prevent hydration mismatches
@@ -82,6 +83,7 @@ export default function Home() {
   const [searchLocation, setSearchLocation] = useState('')
   const [searchArea, setSearchArea] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   // Set mounted state
   useEffect(() => {
@@ -242,29 +244,46 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Flats grid */}
-            {filteredFlats.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredFlats.map((flat) => (
-                  <FlatCard 
-                    key={flat.id} 
-                    flat={flat} 
-                    onClick={() => handleFlatClick(flat)}
+            {/* Cards + Map */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                {filteredFlats.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredFlats.map((flat) => (
+                      <div
+                        key={flat.id}
+                        onMouseEnter={() => setHoveredId(flat.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                      >
+                        <FlatCard 
+                          flat={flat} 
+                          onClick={() => handleFlatClick(flat)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // No results
+                  <div className="text-center py-12">
+                    <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No properties found</h3>
+                    <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters</p>
+                  </div>
+                )}
+              </div>
+              <div className="lg:col-span-1">
+                <div className="sticky top-28">
+                  <MapView
+                    items={filteredFlats.map(f => ({ id: f.id, title: f.title, location: f.location, imageUrl: f.image_url, price: f.rent }))}
+                    activeItemId={hoveredId}
                   />
-                ))}
-              </div>
-            ) : (
-              // No results
-              <div className="text-center py-12">
-                <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No properties found</h3>
-                <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters</p>
               </div>
-            )}
+            </div>
           </>
         )}
       </main>

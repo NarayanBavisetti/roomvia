@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import FlatmateCard from '@/components/flatmate-card'
-import type { Flatmate } from '@/lib/supabase'
+import { supabase, type Flatmate } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 const defaultFlatmate: Flatmate = {
   id: 'preview',
@@ -32,6 +33,9 @@ export default function CreateFlatmateProfilePage() {
   const [mounted, setMounted] = useState(false)
   const [amenityInput, setAmenityInput] = useState('')
   const [locationInput, setLocationInput] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const router = useRouter()
 
   useEffect(() => setMounted(true), [])
 
@@ -61,8 +65,44 @@ export default function CreateFlatmateProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Persist to Supabase flatmates table
-    alert('Profile submitted (mock). Wire up Supabase insert when ready.')
+    setSubmitError('')
+
+    // Basic validation to satisfy NOT NULL constraints
+    if (!flatmate.name.trim()) return setSubmitError('Please enter your name.')
+    if (!flatmate.company.trim()) return setSubmitError('Please enter your company.')
+    if (!flatmate.age || flatmate.age < 16) return setSubmitError('Please enter a valid age.')
+    if (!flatmate.budget_min || !flatmate.budget_max) return setSubmitError('Please provide your budget range.')
+    if (flatmate.budget_min > flatmate.budget_max) return setSubmitError('Budget min cannot exceed budget max.')
+
+    setSubmitting(true)
+    try {
+      const { error } = await supabase.from('flatmates').insert({
+        name: flatmate.name.trim(),
+        age: flatmate.age,
+        gender: flatmate.gender,
+        company: flatmate.company.trim(),
+        budget_min: flatmate.budget_min,
+        budget_max: flatmate.budget_max,
+        non_smoker: flatmate.non_smoker,
+        food_preference: flatmate.food_preference,
+        gated_community: flatmate.gated_community,
+        amenities: flatmate.amenities || [],
+        preferred_locations: flatmate.preferred_locations || [],
+        image_url: flatmate.image_url || null,
+      })
+
+      if (error) {
+        setSubmitError(error.message || 'Failed to save profile. Please try again.')
+        return
+      }
+
+      router.push('/flatmates')
+    } catch (err) {
+      setSubmitError('Unexpected error. Please try again.')
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -161,9 +201,17 @@ export default function CreateFlatmateProfilePage() {
               </div>
             </div>
 
+            {submitError && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {submitError}
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setFlatmate(defaultFlatmate)} className="h-11 px-5">Reset</Button>
-              <Button type="submit" className="h-11 px-5 bg-blue-600 hover:bg-blue-700">Save Profile</Button>
+              <Button type="submit" disabled={submitting} className="h-11 px-5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                {submitting ? 'Saving...' : 'Save Profile'}
+              </Button>
             </div>
           </form>
 
