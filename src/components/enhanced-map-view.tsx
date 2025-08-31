@@ -20,6 +20,7 @@ interface EnhancedMapViewProps {
   activeItemId?: string | null
   onItemHover?: (itemId: string | null) => void
   className?: string
+  searchQuery?: string
 }
 
 // Fix default marker icons in Next.js (client-only)
@@ -84,8 +85,10 @@ const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContai
 const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false })
 const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr: false })
 const Popup = dynamic(() => import('react-leaflet').then(m => m.Popup), { ssr: false })
+const Polyline = dynamic(() => import('react-leaflet').then(m => m.Polyline), { ssr: false })
 
 type LatLng = { lat: number; lng: number }
+
 
 // Enhanced geocoding with persistent caching and better rate limiting
 const geocodeCache = new Map<string, { coords: LatLng | null; timestamp: number }>()
@@ -218,15 +221,18 @@ export default function EnhancedMapView({
   items, 
   activeItemId, 
   onItemHover, 
-  className = "" 
+  className = "",
+  searchQuery = ""
 }: EnhancedMapViewProps) {
   const [positions, setPositions] = useState<Record<string, LatLng>>({})
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [originLocation, setOriginLocation] = useState<LatLng | null>(null)
   const isMountedRef = useRef(false)
   const markersRef = useRef<Record<string, unknown>>({})
   const debounceTimerRef = useRef<number | null>(null)
   const lastActiveIdRef = useRef<string | null>(null)
+  const searchDebounceRef = useRef<number | null>(null)
   
 
   // Prefetch geocodes in batches
@@ -335,6 +341,38 @@ export default function EnhancedMapView({
     onItemHover?.(null)
   }, [onItemHover])
 
+  // Handle search query changes from parent
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      window.clearTimeout(searchDebounceRef.current)
+    }
+    
+    searchDebounceRef.current = window.setTimeout(async () => {
+      if (searchQuery && searchQuery.trim()) {
+        try {
+          const coords = await geocode(searchQuery.trim())
+          if (coords && mapInstance) {
+            setOriginLocation(coords)
+            mapInstance.flyTo([coords.lat, coords.lng], 14, {
+              duration: 1.0,
+              easeLinearity: 0.1
+            })
+          }
+        } catch (error) {
+          console.error('Search failed:', error)
+        }
+      } else {
+        setOriginLocation(null)
+      }
+    }, 500)
+
+    return () => {
+      if (searchDebounceRef.current) {
+        window.clearTimeout(searchDebounceRef.current)
+      }
+    }
+  }, [searchQuery, mapInstance])
+
 
   return (
     <div className={`w-full h-[400px] lg:h-[calc(100vh-140px)] rounded-xl overflow-hidden border border-gray-200 shadow-sm ${className}`}>
@@ -348,7 +386,7 @@ export default function EnhancedMapView({
         zoom={12} 
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
-        className="map-container"
+        className="map-container rounded-xl overflow-hidden"
       >
         <FixMarkerIconsOnce />
         <TileLayer
@@ -356,6 +394,34 @@ export default function EnhancedMapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
+        {/* Route Line - Display when there's both origin and active property */}
+        {originLocation && activeItemId && positions[activeItemId] && (
+          <Polyline
+            positions={[
+              [originLocation.lat, originLocation.lng],
+              [positions[activeItemId].lat, positions[activeItemId].lng]
+            ]}
+            color="#6FE6FC"
+            weight={3}
+            opacity={0.8}
+            dashArray="10, 5"
+          />
+        )}
+
+        {/* Origin Location Marker */}
+        {originLocation && (
+          <Marker
+            position={[originLocation.lat, originLocation.lng]}
+            icon={
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (window as any).createCustomIcon ? 
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (window as any).createCustomIcon('#10b981', true) : 
+              undefined
+            }
+          />
+        )}
+
         {markers.map(({ item, coords }) => {
           const isActive = item.id === activeItemId
           
@@ -385,7 +451,7 @@ export default function EnhancedMapView({
                 offset={[0, -10]}
                 className="custom-popup"
               >
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden min-w-[280px] max-w-[320px]">
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden min-w-[280px] max-w-[320px]">
                   <div className="flex items-start p-4 gap-3">
                     {/* Property Image */}
                     {item.imageUrl && (

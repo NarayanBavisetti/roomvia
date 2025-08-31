@@ -8,7 +8,7 @@ import FlatCard from '@/components/flat-card'
 import FlatCardSkeleton from '@/components/flat-card-skeleton'
 import EnhancedMapView from '@/components/enhanced-map-view'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertCircle } from 'lucide-react'
+import { RefreshCw, AlertCircle, MapPin, Search, X } from 'lucide-react'
 import { useFlatsData } from '@/hooks/useFlatsData'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
@@ -87,6 +87,7 @@ export default function Home() {
   const [searchArea, setSearchArea] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [mapSearchQuery, setMapSearchQuery] = useState('')
 
   // Set mounted state
   useEffect(() => {
@@ -297,10 +298,34 @@ export default function Home() {
           
           <div className="lg:col-span-1">
             <div className="sticky top-28">
+              {/* Map Search Box - Above the map */}
+              <div className="mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex items-center h-12 px-4 gap-3">
+                  <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search location or enter address"
+                    value={mapSearchQuery}
+                    onChange={(e) => setMapSearchQuery(e.target.value)}
+                    className="flex-1 text-sm text-gray-900 placeholder-gray-500 border-none outline-none bg-transparent"
+                  />
+                  {mapSearchQuery && (
+                    <button
+                      onClick={() => setMapSearchQuery('')}
+                      className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X className="h-4 w-4 text-gray-400" />
+                    </button>
+                  )}
+                  <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </div>
+              </div>
+              
               <EnhancedMapView
                 items={mapItems}
                 activeItemId={hoveredId}
                 onItemHover={handleMapItemHover}
+                searchQuery={mapSearchQuery}
               />
             </div>
           </div>
