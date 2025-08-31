@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapPin, Bookmark, MessageCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flat } from '@/lib/supabase'
@@ -16,12 +16,32 @@ interface FlatCardProps {
 
 export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const [isSaved, setIsSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
 
   // Mock owner data - in real app this would come from the flat object
   const ownerEmail = `owner_${flat.id}@example.com`
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchSaved() {
+      if (!user) {
+        setIsSaved(false)
+        return
+      }
+      try {
+        const { savesApi } = await import('@/lib/saves')
+        const saved = await savesApi.isSaved('flat', flat.id)
+        if (!cancelled) setIsSaved(saved)
+      } catch (e) {
+        console.error('Failed to load saved state:', e)
+      }
+    }
+    fetchSaved()
+    return () => { cancelled = true }
+  }, [user, flat.id])
 
   const handleMessageOwner = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -43,6 +63,34 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
     const destination = encodeURIComponent(flat.location)
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`
     window.open(url, '_blank')
+  }
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!user) {
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
+      return
+    }
+    if (saving) return
+    setSaving(true)
+    const previous = isSaved
+    try {
+      // Optimistic UI
+      setIsSaved(!previous)
+      const { savesApi } = await import('@/lib/saves')
+      const { saved, error } = await savesApi.toggleSave('flat', flat.id)
+      if (error) {
+        console.error('Save toggle failed:', error)
+        setIsSaved(previous)
+      } else {
+        setIsSaved(saved)
+      }
+    } catch (e) {
+      console.error('Save toggle failed:', e)
+      setIsSaved(previous)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -72,17 +120,8 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 
         {/* Save icon */}
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            if (!user) {
-              if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
-              return
-            }
-            import('@/lib/saves').then(async ({ savesApi }) => {
-              const { saved } = await savesApi.toggleSave('flat', flat.id)
-              setIsSaved(saved)
-            })
-          }}
+          onClick={handleToggleSave}
+          aria-pressed={isSaved}
           className="absolute top-4 right-4 p-2.5 bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition-colors shadow-sm"
         >
           <Bookmark className={`h-4 w-4 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />

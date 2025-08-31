@@ -228,7 +228,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               onClick={handleSearch}
               disabled={!selectedState || !selectedArea}
               size="icon"
-              className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 x transition-all duration-200 ml-1"
+              className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 transition-all duration-200 ml-1"
             >
               <Search className="h-4 w-4 text-primary-foreground" />
             </Button>

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Heart, FileText, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -148,9 +148,9 @@ export default function Navbar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="group relative h-9 w-9 hover:bg-gray-100 transition-all duration-300 hover:scale-110 transform"
+                className="group relative h-11 w-11 rounded-full bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-all duration-300 hover:scale-110 transform shadow-sm hover:shadow-md"
               >
-                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-all duration-300 group-hover:scale-110" />
                 {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                     {Math.min(chatList.reduce((acc, chat) => acc + chat.unread_count, 0), 9)}
@@ -160,7 +160,7 @@ export default function Navbar() {
             )}
             
             <Button
-              className="group bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-xl px-4 py-2 transition-all duration-300 hover:shadow-lg hover:scale-105 transform"
+              className="group relative bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-2xl px-6 py-3 h-11 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105 transform border-0 overflow-hidden"
               onClick={() => {
                 if (user) {
                   router.push(ctaHref)
@@ -169,8 +169,9 @@ export default function Navbar() {
                 }
               }}
             >
-              <Plus className="h-4 w-4 mr-2 group-hover:rotate-180 transition-transform duration-300" />
-              {ctaLabel}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out"></div>
+              <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+              <span className="relative z-10">{ctaLabel}</span>
             </Button>
             
             {loading ? (
@@ -178,48 +179,92 @@ export default function Navbar() {
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
+                  <Button variant="ghost" className="group relative h-11 w-11 rounded-full p-0 hover:scale-105 transition-all duration-300">
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold group-hover:from-purple-600 group-hover:to-purple-700 transition-all duration-300">
                         {getUserInitials(user)}
                       </AvatarFallback>
                     </Avatar>
+                    <div className="absolute inset-0 rounded-full bg-purple-500/20 scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
+                <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-lg border border-gray-200/50 shadow-2xl rounded-2xl p-2">
+                  <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-xl mb-2">
+                    <Avatar className="h-8 w-8 border-2 border-white shadow-md flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold">
+                        {getUserInitials(user)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col space-y-1 leading-none flex-1 min-w-0">
                       {user.email && (
-                        <p className="font-medium">{user.email}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">{user.email}</p>
                       )}
                       {user.phone && !user.email && (
-                        <p className="font-medium">{user.phone}</p>
+                        <p className="font-semibold text-gray-900 text-sm">{user.phone}</p>
                       )}
-                      <p className="w-[200px] truncate text-sm text-muted-foreground">
-                        {user.email || user.phone || 'User'}
+                      <p className="text-xs text-purple-600 font-medium">
+                        Active user
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={(e) => {
-                    e.preventDefault()
-                    router.push('/profile')
-                  }}>
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                  <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/profile')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                        <UserIcon className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Profile</span>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.preventDefault()
-                    router.push('/saved')
-                  }}>
-                    <span>Saved</span>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/saved')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-red-50 group-hover:bg-red-100 transition-colors">
+                        <Heart className="h-4 w-4 text-red-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Saved</span>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>My Listings</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
+                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-green-50 group-hover:bg-green-100 transition-colors">
+                        <FileText className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">My Listings</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors">
+                        <Settings className="h-4 w-4 text-gray-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Settings</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100/50 focus:bg-gradient-to-r focus:from-red-50 focus:to-red-100/50"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-md bg-red-50 group-hover:bg-red-100 transition-colors">
+                          <LogOut className="h-4 w-4 text-red-600" />
+                        </div>
+                        <span className="font-medium text-red-600 group-hover:text-red-700 text-sm">Sign out</span>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -287,7 +332,7 @@ export default function Navbar() {
               </button>
               <div className="block px-3 py-2">
                 <Button
-                  className="group w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-lg"
+                  className="group relative w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-2xl py-3 h-12 transition-all duration-300 hover:shadow-lg overflow-hidden"
                   onClick={() => {
                     if (user) {
                       router.push(ctaHref)
@@ -296,8 +341,9 @@ export default function Navbar() {
                     }
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-2 group-hover:rotate-180 transition-transform duration-300" />
-                  {ctaLabel}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out"></div>
+                  <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+                  <span className="relative z-10">{ctaLabel}</span>
                 </Button>
               </div>
               <div className="border-t border-gray-200 pt-4 mt-4">
@@ -306,8 +352,8 @@ export default function Navbar() {
                 ) : user ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 px-3 py-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
+                      <Avatar className="h-9 w-9 border-2 border-purple-200 shadow-md">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold">
                           {getUserInitials(user)}
                         </AvatarFallback>
                       </Avatar>
@@ -319,10 +365,10 @@ export default function Navbar() {
                     </div>
                     <Button 
                       variant="ghost" 
-                      className="group w-full justify-start font-medium transition-all duration-200"
+                      className="group w-full justify-start font-medium transition-all duration-200 hover:bg-purple-50 rounded-lg"
                       onClick={toggleSidebar}
                     >
-                      <MessageCircle className="mr-2 h-4 w-4 group-hover:text-purple-600 transition-colors duration-200" />
+                      <MessageCircle className="mr-3 h-4 w-4 group-hover:text-purple-600 transition-colors duration-200" />
                       Messages
                       {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
                         <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">

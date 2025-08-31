@@ -19,7 +19,7 @@ import {
   Utensils,
   MessageCircle
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flatmate } from '@/lib/supabase'
@@ -58,11 +58,31 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
 
   // Mock flatmate data - in real app this would be the actual user
   const flatmateEmail = `${flatmate.name.toLowerCase().replace(' ', '.')}@example.com`
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchSaved() {
+      if (!user) {
+        setIsSaved(false)
+        return
+      }
+      try {
+        const { savesApi } = await import('@/lib/saves')
+        const saved = await savesApi.isSaved('person', flatmate.id)
+        if (!cancelled) setIsSaved(saved)
+      } catch (e) {
+        console.error('Failed to load saved state:', e)
+      }
+    }
+    fetchSaved()
+    return () => { cancelled = true }
+  }, [user, flatmate.id])
 
   const handleConnect = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -77,6 +97,33 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
     // Use the flatmate ID as the user ID for chat
     openChat(flatmate.id, flatmateEmail)
     onConnect?.()
+  }
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!user) {
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
+      return
+    }
+    if (saving) return
+    setSaving(true)
+    const previous = isSaved
+    try {
+      setIsSaved(!previous)
+      const { savesApi } = await import('@/lib/saves')
+      const { saved, error } = await savesApi.toggleSave('person', flatmate.id)
+      if (error) {
+        console.error('Save toggle failed:', error)
+        setIsSaved(previous)
+      } else {
+        setIsSaved(saved)
+      }
+    } catch (e) {
+      console.error('Save toggle failed:', e)
+      setIsSaved(previous)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -106,17 +153,8 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
           {/* Save icon */}
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              if (!user) {
-                if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
-                return
-              }
-              import('@/lib/saves').then(async ({ savesApi }) => {
-                const { saved } = await savesApi.toggleSave('person', flatmate.id)
-                setIsSaved(saved)
-              })
-            }}
+            onClick={handleToggleSave}
+            aria-pressed={isSaved}
             className="absolute top-0 right-0 p-1 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm"
           >
             <Bookmark className={`h-3 w-3 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />

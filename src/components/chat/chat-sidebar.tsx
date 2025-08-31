@@ -22,7 +22,7 @@ export default function ChatSidebar() {
     if (isSidebarOpen) {
       refreshChatList()
     }
-  }, [isSidebarOpen, refreshChatList])
+  }, [isSidebarOpen]) // Remove refreshChatList from dependencies
 
   if (!isSidebarOpen) return null
 
