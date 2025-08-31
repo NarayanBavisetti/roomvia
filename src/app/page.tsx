@@ -12,6 +12,7 @@ import { RefreshCw, AlertCircle, MapPin, Search, X } from 'lucide-react'
 import { useFlatsData } from '@/hooks/useFlatsData'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
+import type { State, Area } from '@/lib/api'
 
 // Mock data for development (replace with Supabase data when configured) 
 // Using fixed timestamp to prevent hydration mismatches
@@ -133,9 +134,9 @@ export default function Home() {
     }))
   }, [flats])
 
-  const handleSearch = (location: string, area: string) => {
-    setSearchLocation(location)
-    setSearchArea(area)
+  const handleSearch = (state: State | null, area: Area | null) => {
+    setSearchLocation(state?.name || '')
+    setSearchArea(area?.name || '')
   }
 
   const handleFiltersChange = (filters: Record<string, string[]>) => {

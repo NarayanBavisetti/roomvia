@@ -125,21 +125,21 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
               {filters.map((filter) => (
                 <div key={filter.id} className="relative">
                   <Button
-                    variant={activeFilters[filter.id]?.length ? "default" : "outline"}
+                    variant={activeFilters[filter.id]?.length ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => filter.type === 'toggle' 
                       ? toggleFilter(filter.id) 
                       : setOpenDropdown(openDropdown === filter.id ? null : filter.id)
                     }
-                    className={`rounded-full whitespace-nowrap ${
+                    className={`rounded-full whitespace-nowrap transition-colors ${
                       activeFilters[filter.id]?.length 
-                        ? 'bg-purple-500 text-white hover:bg-purple-800' 
+                        ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' 
                         : 'hover:bg-gray-50'
                     }`}
                   >
                     {filter.label}
                     {activeFilters[filter.id]?.length && (
-                      <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white text-purple-500">
+                      <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white text-purple-600">
                         {activeFilters[filter.id].length}
                       </Badge>
                     )}
@@ -158,7 +158,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                             onClick={() => toggleFilter(filter.id, option)}
                             className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                               activeFilters[filter.id]?.includes(option)
-                                ? 'bg-purple-50 text-purple-600'
+                                ? 'bg-purple-50 text-purple-700' 
                                 : 'hover:bg-gray-50'
                             }`}
                           >

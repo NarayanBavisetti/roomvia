@@ -5,6 +5,19 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export type State = {
+  id: string
+  name: string
+  created_at: string
+}
+
+export type Area = {
+  id: string
+  name: string
+  state_id: string
+  created_at: string
+}
+
 export type Flat = {
   id: string
   title: string
