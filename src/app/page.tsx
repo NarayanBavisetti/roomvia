@@ -166,21 +166,30 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" suppressHydrationWarning>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 relative overflow-x-hidden" suppressHydrationWarning>
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 -right-20 w-96 h-96 bg-purple-100/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/3 -left-32 w-80 h-80 bg-blue-100/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-200/20 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-10 -left-20 w-72 h-72 bg-gradient-to-r from-purple-100/20 to-pink-100/20 rounded-full blur-3xl"></div>
+      </div>
       <Navbar />
       
       {/* Hero Section */}
-      <section className="bg-white">
+      <section className="relative bg-white/80 backdrop-blur-sm">
         <SearchBar onSearch={handleSearch} />
       </section>
 
       {/* Filter Bar */}
-      <FilterBar onFiltersChange={handleFiltersChange} />
+      <div className="relative">
+        <FilterBar onFiltersChange={handleFiltersChange} />
+      </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Results count and refresh button */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
           <div>
             <p className="text-lg font-medium text-gray-900">
               {loading && flats.length === 0 ? (
@@ -334,7 +343,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
+      <footer className="relative bg-white/90 backdrop-blur-sm border-t border-gray-200/50 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-purple-500 mb-4">Roomvia</h2>

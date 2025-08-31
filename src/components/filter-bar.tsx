@@ -109,58 +109,63 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
   }
 
   return (
-    <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
-      isSticky ? 'fixed top-16 left-0 right-0 z-40 shadow-sm' : 'relative'
+    <div className={`transition-all duration-300 ${
+      isSticky ? 'fixed top-16 left-0 right-0 z-40' : 'relative'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Filter className="h-4 w-4" />
-            <span className="text-sm font-medium">Filters</span>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-gray-700">
+              <div className="p-2 bg-purple-50 rounded-full">
+                <Filter className="h-4 w-4 text-purple-600" />
+              </div>
+              <span className="text-sm font-semibold">Filters</span>
+            </div>
 
-          {/* Filter buttons - scrollable on mobile */}
-          <div className="flex-1 overflow-x-auto">
-            <div className="flex items-center gap-3 min-w-max">
+            {/* Filter buttons - scrollable on mobile */}
+            <div className="flex-1 overflow-x-auto">
+              <div className="flex items-center gap-3 min-w-max">
               {filters.map((filter) => (
                 <div key={filter.id} className="relative">
-                  <Button
-                    variant={activeFilters[filter.id]?.length ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => filter.type === 'toggle' 
-                      ? toggleFilter(filter.id) 
-                      : setOpenDropdown(openDropdown === filter.id ? null : filter.id)
-                    }
-                    className={`rounded-full whitespace-nowrap transition-colors ${
-                      activeFilters[filter.id]?.length 
-                        ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' 
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
+                    <Button
+                      variant={activeFilters[filter.id]?.length ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => filter.type === 'toggle' 
+                        ? toggleFilter(filter.id) 
+                        : setOpenDropdown(openDropdown === filter.id ? null : filter.id)
+                      }
+                      className={`group rounded-full whitespace-nowrap transition-all duration-300 hover:scale-105 transform ${
+                        activeFilters[filter.id]?.length 
+                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 shadow-md' 
+                          : 'border-gray-300 hover:border-purple-400 hover:text-purple-600 hover:shadow-sm'
+                      }`}
+                    >
                     {filter.label}
-                    {activeFilters[filter.id]?.length && (
-                      <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white text-purple-600">
-                        {activeFilters[filter.id].length}
-                      </Badge>
-                    )}
-                    {filter.type !== 'toggle' && (
-                      <ChevronDown className="ml-1 h-3 w-3" />
-                    )}
+                      {activeFilters[filter.id]?.length && (
+                        <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white/20 text-white border-0">
+                          {activeFilters[filter.id].length}
+                        </Badge>
+                      )}
+                      {filter.type !== 'toggle' && (
+                        <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${
+                          openDropdown === filter.id ? 'rotate-180' : ''
+                        }`} />
+                      )}
                   </Button>
 
-                  {/* Dropdown menu */}
-                  {openDropdown === filter.id && filter.options && (
-                    <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48">
-                      <div className="p-2">
+                    {/* Dropdown menu */}
+                    {openDropdown === filter.id && filter.options && (
+                      <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-xl shadow-xl z-50 min-w-48">
+                        <div className="p-2">
                         {filter.options.map((option) => (
                           <button
                             key={option}
                             onClick={() => toggleFilter(filter.id, option)}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                              activeFilters[filter.id]?.includes(option)
-                                ? 'bg-purple-50 text-purple-700' 
-                                : 'hover:bg-gray-50'
-                            }`}
+                              className={`group w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:scale-105 transform ${
+                                activeFilters[filter.id]?.includes(option)
+                                  ? 'bg-purple-50 text-purple-700 shadow-sm' 
+                                  : 'hover:bg-gray-50 hover:text-purple-600'
+                              }`}
                           >
                             {option}
                           </button>
@@ -168,47 +173,48 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                       </div>
                     </div>
                   )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Clear filters button */}
-          {getActiveFilterCount() > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="rounded-full text-gray-600 hover:text-gray-800"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear all
-            </Button>
-          )}
+            {/* Clear filters button */}
+            {getActiveFilterCount() > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="group rounded-full text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-300 hover:scale-105 transform"
+              >
+                <X className="h-4 w-4 mr-1 group-hover:rotate-90 transition-transform duration-300" />
+                Clear all
+              </Button>
+            )}
         </div>
 
-        {/* Active filters display */}
-        {getActiveFilterCount() > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          {/* Active filters display */}
+          {getActiveFilterCount() > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
             {Object.entries(activeFilters).map(([filterId, values]) => 
               values.map((value) => (
-                <Badge
-                  key={`${filterId}-${value}`}
-                  variant="secondary"
-                  className="bg-purple-50 text-purple-700 hover:bg-purple-100"
-                >
-                  {filters.find(f => f.id === filterId)?.label}: {value === 'true' ? 'Allowed' : value}
-                  <button
-                    onClick={() => toggleFilter(filterId, value)}
-                    className="ml-1 hover:bg-purple-200 rounded-full p-0.5"
+                  <Badge
+                    key={`${filterId}-${value}`}
+                    variant="secondary"
+                    className="group bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 hover:from-purple-200 hover:to-purple-100 transition-all duration-200 hover:scale-105 transform border-purple-200"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {filters.find(f => f.id === filterId)?.label}: {value === 'true' ? 'Allowed' : value}
+                    <button
+                      onClick={() => toggleFilter(filterId, value)}
+                      className="ml-1 hover:bg-purple-300 rounded-full p-0.5 transition-all duration-200 hover:scale-110 transform"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                 </Badge>
               ))
             )}
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Click outside to close dropdown */}
