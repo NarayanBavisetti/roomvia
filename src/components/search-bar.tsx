@@ -27,7 +27,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     <div className="w-full max-w-4xl mx-auto mt-24 mb-8 px-4">
       <div className="text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Find your perfect <span className="text-blue-600">room</span>
+          Find your perfect <span className="text-purple-500">room</span>
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Discover amazing flats and flatmates in your preferred location with ease
@@ -65,7 +65,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
           {/* Search Button */}
           <Button 
             onClick={handleSearch}
-            className="h-14 px-8 text-lg font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+            className="h-14 px-8 text-lg font-semibold bg-purple-500 hover:bg-purple-800 rounded-xl transition-colors"
           >
             <Search className="mr-2 h-5 w-5" />
             Search

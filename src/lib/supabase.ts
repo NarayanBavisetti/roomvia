@@ -42,6 +42,7 @@ export type FlatmatePreferences = {
 
 export type Listing = {
   id: string
+  user_id: string
   user_type: 'normal' | 'broker'
   title: string
   property_type: string
@@ -57,7 +58,9 @@ export type Listing = {
   flatmate_preferences: FlatmatePreferences
   contact_number: string
   image_urls: string[]
+  status: 'active' | 'inactive' | 'rented'
   created_at: string
+  updated_at: string
 }
 
 export type Message = {

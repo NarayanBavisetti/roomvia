@@ -67,7 +67,7 @@ export default function CreateFlatmateProfilePage() {
                   window.dispatchEvent(new Event('open-login-modal'))
                 }
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-purple-600 hover:bg-purple-900"
             >
               Open Login
             </Button>
@@ -245,7 +245,7 @@ export default function CreateFlatmateProfilePage() {
 
             <div className="flex items-center justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setFlatmate(defaultFlatmate)} className="h-11 px-5">Reset</Button>
-              <Button type="submit" disabled={submitting} className="h-11 px-5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
+              <Button type="submit" disabled={submitting} className="h-11 px-5 bg-purple-600 hover:bg-purple-900 disabled:opacity-60 disabled:cursor-not-allowed">
                 {submitting ? 'Saving...' : 'Save Profile'}
               </Button>
             </div>

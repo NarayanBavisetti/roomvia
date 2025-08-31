@@ -91,7 +91,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                  <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
                     {getUserInitials(chat.otherUserEmail)}
                   </AvatarFallback>
                 </Avatar>
@@ -157,14 +157,14 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
                           
                           <div className={`px-4 py-2 rounded-lg ${
                             isOwnMessage
-                              ? 'bg-blue-600 text-white rounded-br-sm'
+                              ? 'bg-purple-500 text-white rounded-br-sm'
                               : 'bg-gray-100 text-gray-900 rounded-bl-sm'
                           } ${!showAvatar ? (isOwnMessage ? 'mr-8' : 'ml-8') : ''}`}>
                             <p className="text-sm whitespace-pre-wrap break-words">
                               {message.message_text}
                             </p>
                             <p className={`text-xs mt-1 ${
-                              isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                              isOwnMessage ? 'text-purple-100' : 'text-gray-500'
                             }`}>
                               {formatMessageDate(message.created_at)}
                             </p>
@@ -193,7 +193,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
                   type="submit" 
                   size="icon"
                   disabled={!newMessage.trim() || isSending}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-purple-500 hover:bg-purple-800"
                 >
                   {isSending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -214,12 +214,12 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
     return (
       <div className="fixed bottom-0 right-4 w-72 bg-white border border-gray-200 rounded-t-lg shadow-lg z-40">
         <div 
-          className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg cursor-pointer hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-between px-4 py-3 bg-purple-500 text-white rounded-t-lg cursor-pointer hover:bg-purple-800 transition-colors"
           onClick={() => minimizeChat(chat.id)}
         >
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarFallback className="bg-white text-blue-600 text-xs font-medium">
+              <AvatarFallback className="bg-white text-purple-500 text-xs font-medium">
                 {getUserInitials(chat.otherUserEmail)}
               </AvatarFallback>
             </Avatar>
@@ -239,7 +239,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
               e.stopPropagation()
               closeChat(chat.id)
             }}
-            className="h-6 w-6 text-white hover:bg-blue-800"
+            className="h-6 w-6 text-white hover:bg-purple-500"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -252,10 +252,10 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
   return (
     <div className="fixed bottom-0 right-4 w-80 h-96 bg-white border border-gray-200 rounded-t-lg shadow-2xl z-40 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+      <div className="flex items-center justify-between px-4 py-3 bg-purple-500 text-white rounded-t-lg">
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
-            <AvatarFallback className="bg-white text-blue-600 text-xs font-medium">
+            <AvatarFallback className="bg-white text-purple-500 text-xs font-medium">
               {getUserInitials(chat.otherUserEmail)}
             </AvatarFallback>
           </Avatar>
@@ -269,7 +269,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
             variant="ghost"
             size="icon"
             onClick={() => expandChat(chat.id)}
-            className="h-6 w-6 text-white hover:bg-blue-700"
+            className="h-6 w-6 text-white hover:bg-purple-800"
           >
             <Maximize2 className="h-3 w-3" />
           </Button>
@@ -277,7 +277,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
             variant="ghost"
             size="icon"
             onClick={() => minimizeChat(chat.id)}
-            className="h-6 w-6 text-white hover:bg-blue-700"
+            className="h-6 w-6 text-white hover:bg-purple-800"
           >
             <Minus className="h-3 w-3" />
           </Button>
@@ -285,7 +285,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
             variant="ghost"
             size="icon"
             onClick={() => closeChat(chat.id)}
-            className="h-6 w-6 text-white hover:bg-blue-700"
+            className="h-6 w-6 text-white hover:bg-purple-800"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -315,7 +315,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
                 >
                   <div className={`max-w-[75%] px-3 py-2 rounded-lg text-xs ${
                     isOwnMessage
-                      ? 'bg-blue-600 text-white rounded-br-sm'
+                      ? 'bg-purple-500 text-white rounded-br-sm'
                       : 'bg-gray-100 text-gray-900 rounded-bl-sm'
                   }`}>
                     <p className="whitespace-pre-wrap break-words">
@@ -348,7 +348,7 @@ export default function ChatWindowComponent({ chat }: ChatWindowProps) {
             type="submit" 
             size="icon"
             disabled={!newMessage.trim() || isSending}
-            className="bg-blue-600 hover:bg-blue-700 h-8 w-8"
+            className="bg-purple-500 hover:bg-purple-800 h-8 w-8"
           >
             {isSending ? (
               <Loader2 className="h-3 w-3 animate-spin" />

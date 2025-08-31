@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { 
   MapPin, 
   Building2, 
-  Heart, 
+  Bookmark, 
   Wifi, 
   Car, 
   Dumbbell,
@@ -16,7 +16,8 @@ import {
   Wind,
   Coffee,
   TreePine,
-  Utensils
+  Utensils,
+  MessageCircle
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
@@ -56,6 +57,7 @@ const getFoodIcon = (preference: string) => {
 export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
 
@@ -102,19 +104,22 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
             )}
           </div>
 
-          {/* Heart icon */}
+          {/* Save icon */}
           <button
             onClick={(e) => {
               e.stopPropagation()
-              setIsLiked(!isLiked)
+              if (!user) {
+                if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
+                return
+              }
+              import('@/lib/saves').then(async ({ savesApi }) => {
+                const { saved } = await savesApi.toggleSave('person', flatmate.id)
+                setIsSaved(saved)
+              })
             }}
             className="absolute top-0 right-0 p-1 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm"
           >
-            <Heart 
-              className={`h-3 w-3 ${
-                isLiked ? 'text-red-500 fill-current' : 'text-gray-600'
-              }`} 
-            />
+            <Bookmark className={`h-3 w-3 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />
           </button>
 
           {/* Name and basic info */}
@@ -130,7 +135,7 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
         {/* Company + Budget Row */}
         <div className="flex items-center justify-between mb-3">
-          <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 flex items-center">
+          <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 flex items-center">
             <Building2 className="h-2.5 w-2.5 mr-1" />
             {flatmate.company}
           </Badge>
@@ -219,12 +224,13 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
           </div>
         )}
 
-        {/* Connect button */}
+        {/* Chat button */}
         <Button 
           onClick={handleConnect}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 text-sm rounded-lg transition-colors"
+          className="w-full bg-purple-500 hover:bg-purple-800 text-white font-medium py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          Connect
+          <MessageCircle className="h-4 w-4" />
+          Chat
         </Button>
       </div>
     </div>

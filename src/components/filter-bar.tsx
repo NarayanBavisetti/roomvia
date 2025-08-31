@@ -133,13 +133,13 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                     }
                     className={`rounded-full whitespace-nowrap ${
                       activeFilters[filter.id]?.length 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        ? 'bg-purple-500 text-white hover:bg-purple-800' 
                         : 'hover:bg-gray-50'
                     }`}
                   >
                     {filter.label}
                     {activeFilters[filter.id]?.length && (
-                      <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white text-blue-600">
+                      <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs bg-white text-purple-500">
                         {activeFilters[filter.id].length}
                       </Badge>
                     )}
@@ -158,7 +158,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                             onClick={() => toggleFilter(filter.id, option)}
                             className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                               activeFilters[filter.id]?.includes(option)
-                                ? 'bg-blue-50 text-blue-600'
+                                ? 'bg-purple-50 text-purple-600'
                                 : 'hover:bg-gray-50'
                             }`}
                           >
@@ -195,12 +195,12 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                 <Badge
                   key={`${filterId}-${value}`}
                   variant="secondary"
-                  className="bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  className="bg-purple-50 text-purple-700 hover:bg-purple-100"
                 >
                   {filters.find(f => f.id === filterId)?.label}: {value === 'true' ? 'Allowed' : value}
                   <button
                     onClick={() => toggleFilter(filterId, value)}
-                    className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
+                    className="ml-1 hover:bg-purple-200 rounded-full p-0.5"
                   >
                     <X className="h-3 w-3" />
                   </button>

@@ -52,7 +52,7 @@ export default function ChatSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white sticky top-0">
           <div className="flex items-center gap-3">
-            <MessageCircle className="h-6 w-6 text-blue-600" />
+            <MessageCircle className="h-6 w-6 text-purple-500" />
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
           </div>
           <Button 
@@ -92,7 +92,7 @@ export default function ChatSidebar() {
                     {/* Avatar */}
                     <div className="relative">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                        <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
                           {getUserInitials(chat.other_user_email)}
                         </AvatarFallback>
                       </Avatar>

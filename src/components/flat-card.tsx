@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MapPin, Heart, MessageCircle } from 'lucide-react'
+import { MapPin, Bookmark, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -15,7 +15,7 @@ interface FlatCardProps {
 }
 
 export default function FlatCard({ flat, onClick }: FlatCardProps) {
-  const [isLiked, setIsLiked] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
@@ -47,7 +47,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 
   return (
     <div 
-      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
+      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
       onClick={onClick}
     >
       {/* Image container */}
@@ -70,57 +70,60 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           </div>
         )}
 
-        {/* Heart icon */}
+        {/* Save icon */}
         <button
           onClick={(e) => {
             e.stopPropagation()
-            setIsLiked(!isLiked)
+            if (!user) {
+              if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
+              return
+            }
+            import('@/lib/saves').then(async ({ savesApi }) => {
+              const { saved } = await savesApi.toggleSave('flat', flat.id)
+              setIsSaved(saved)
+            })
           }}
-          className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
+          className="absolute top-4 right-4 p-2.5 bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition-colors shadow-sm"
         >
-          <Heart 
-            className={`h-4 w-4 ${
-              isLiked ? 'text-red-500 fill-current' : 'text-gray-600'
-            }`} 
-          />
+          <Bookmark className={`h-4 w-4 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />
         </button>
 
         {/* Room type badge */}
-        <div className="absolute top-3 left-3">
-          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-medium">
+        <div className="absolute top-4 left-4">
+          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-medium px-3 py-1 text-xs border-0">
             {flat.room_type}
           </Badge>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-6">
         {/* Title and location */}
-        <div className="mb-3">
-          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">
+        <div className="mb-4">
+          <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-1 group-hover:text-purple-500 transition-colors">
             {flat.title}
           </h3>
-          <div className="flex items-center text-gray-600 text-sm">
-            <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+          <div className="flex items-center text-gray-500 text-sm">
+            <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="line-clamp-1">{flat.location}</span>
           </div>
         </div>
 
         {/* Rent */}
-        <div className="mb-3">
+        <div className="mb-4">
           <div className="text-2xl font-bold text-gray-900">
             ₹{flat.rent.toLocaleString('en-IN')}
-            <span className="text-sm font-normal text-gray-600 ml-1">/month</span>
+            <span className="text-sm font-normal text-gray-500 ml-1">/month</span>
           </div>
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-2 mb-6">
           {flat.tags.slice(0, 3).map((tag, index) => (
             <Badge 
               key={index}
               variant="outline" 
-              className="text-xs px-2 py-0.5 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              className="text-xs px-3 py-1 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 rounded-full"
             >
               {tag}
             </Badge>
@@ -128,20 +131,20 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           {flat.tags.length > 3 && (
             <Badge 
               variant="outline" 
-              className="text-xs px-2 py-0.5 bg-gray-50 border-gray-200 text-gray-600"
+              className="text-xs px-3 py-1 bg-gray-50 border-gray-200 text-gray-600 rounded-full"
             >
-              +{flat.tags.length - 3} more
+              +{flat.tags.length - 3}
             </Badge>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             onClick={handleMessageOwner}
             variant="outline"
             size="sm"
-            className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            className="flex-1 border-purple-200 text-purple-500 hover:bg-purple-50 hover:border-purple-500 transition-colors py-2.5 rounded-xl"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
             Chat
@@ -150,10 +153,10 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
             onClick={handleGetDirections}
             variant="secondary"
             size="sm"
-            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200"
+            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200 py-2.5 rounded-xl"
           >
             <MapPin className="h-4 w-4 mr-2" />
-            Get directions
+            Directions
           </Button>
         </div>
       </div>

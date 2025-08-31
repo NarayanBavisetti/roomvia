@@ -1,6 +1,7 @@
 -- Create the listings table
 CREATE TABLE listings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   user_type TEXT NOT NULL CHECK (user_type IN ('normal', 'broker')),
   title TEXT NOT NULL,
   property_type TEXT NOT NULL,
@@ -16,7 +17,9 @@ CREATE TABLE listings (
   flatmate_preferences JSONB DEFAULT '{}',
   contact_number TEXT NOT NULL,
   image_urls TEXT[] DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'rented')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Insert sample listing data

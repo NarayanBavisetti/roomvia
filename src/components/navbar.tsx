@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Menu, Plus, LogOut, UserIcon, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import LoginModal from '@/components/auth/login-modal'
@@ -29,6 +29,7 @@ export default function Navbar() {
   const { user, loading, signOut } = useAuth()
   const { toggleSidebar, chatList } = useChat()
   const pathname = usePathname()
+  const router = useRouter()
   const isFlatmatesSection = pathname?.startsWith('/flatmates')
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
   const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
@@ -83,7 +84,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/">
-              <h1 className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors">
+              <h1 className="text-2xl font-bold text-purple-500 cursor-pointer hover:text-purple-800 transition-colors">
                 Roomvia
               </h1>
             </Link>
@@ -91,10 +92,10 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+            <Link href="/" className="text-gray-700 hover:text-purple-500 transition-colors font-medium">
               Flats
             </Link>
-            <Link href="/flatmates" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+            <Link href="/flatmates" className="text-gray-700 hover:text-purple-500 transition-colors font-medium">
               Flatmates
             </Link>
           </div>
@@ -118,10 +119,10 @@ export default function Navbar() {
             )}
             
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors"
+              className="bg-purple-500 hover:bg-purple-800 text-white font-medium rounded-xl px-4 py-2 transition-colors"
               onClick={() => {
                 if (user) {
-                  window.location.href = ctaHref
+                  router.push(ctaHref)
                 } else {
                   setShowLoginModal(true)
                 }
@@ -138,7 +139,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                      <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
                         {getUserInitials(user)}
                       </AvatarFallback>
                     </Avatar>
@@ -163,6 +164,11 @@ export default function Navbar() {
                     <DropdownMenuItem>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>Profile</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/profile">
+                    <DropdownMenuItem>
+                      <span>Saved</span>
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuItem>My Listings</DropdownMenuItem>
@@ -201,18 +207,18 @@ export default function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
-              <Link href="/" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
+              <Link href="/" className="block px-3 py-2 text-gray-700 hover:text-purple-500 font-medium">
                 Flats
               </Link>
-              <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
+              <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-purple-500 font-medium">
                 Flatmates
               </Link>
               <div className="block px-3 py-2">
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl"
+                  className="w-full bg-purple-500 hover:bg-purple-800 text-white font-medium rounded-xl"
                   onClick={() => {
                     if (user) {
-                      window.location.href = ctaHref
+                      router.push(ctaHref)
                     } else {
                       setShowLoginModal(true)
                     }
@@ -229,7 +235,7 @@ export default function Navbar() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 px-3 py-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                        <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
                           {getUserInitials(user)}
                         </AvatarFallback>
                       </Avatar>
