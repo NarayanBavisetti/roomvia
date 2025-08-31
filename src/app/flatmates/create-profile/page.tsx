@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import FlatmateCard from '@/components/flatmate-card'
 import { supabase, type Flatmate } from '@/lib/supabase'
+import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 
 const defaultFlatmate: Flatmate = {
@@ -36,10 +37,45 @@ export default function CreateFlatmateProfilePage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const router = useRouter()
+  const { user, loading } = useAuth()
+  const [loginPrompted, setLoginPrompted] = useState(false)
 
   useEffect(() => setMounted(true), [])
 
+  // Gate route: if not logged in, open login modal and block rendering
+  useEffect(() => {
+    if (!loading && !user && !loginPrompted) {
+      setLoginPrompted(true)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
+    }
+  }, [user, loading, loginPrompted])
+
   if (!mounted) return null
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login required</h1>
+            <p className="text-gray-600 mb-6">Please login to create your profile.</p>
+            <Button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new Event('open-login-modal'))
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Open Login
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   const update = <K extends keyof Flatmate>(key: K, value: Flatmate[K]) => {
     setFlatmate(prev => ({ ...prev, [key]: value }))

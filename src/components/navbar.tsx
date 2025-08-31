@@ -117,12 +117,19 @@ export default function Navbar() {
               </Button>
             )}
             
-            <Link href={ctaHref}>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors">
-                <Plus className="h-4 w-4 mr-2" />
-                {ctaLabel}
-              </Button>
-            </Link>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors"
+              onClick={() => {
+                if (user) {
+                  window.location.href = ctaHref
+                } else {
+                  setShowLoginModal(true)
+                }
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {ctaLabel}
+            </Button>
             
             {loading ? (
               <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
@@ -200,12 +207,21 @@ export default function Navbar() {
               <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
                 Flatmates
               </Link>
-              <Link href={ctaHref} className="block px-3 py-2">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl">
+              <div className="block px-3 py-2">
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl"
+                  onClick={() => {
+                    if (user) {
+                      window.location.href = ctaHref
+                    } else {
+                      setShowLoginModal(true)
+                    }
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   {ctaLabel}
                 </Button>
-              </Link>
+              </div>
               <div className="border-t border-gray-200 pt-4 mt-4">
                 {loading ? (
                   <div className="w-full h-8 bg-gray-200 rounded animate-pulse" />

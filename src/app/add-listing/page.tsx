@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ import {
   Users
 } from 'lucide-react'
 import { supabase, type FlatmatePreferences } from '@/lib/supabase'
+import { useAuth } from '@/contexts/auth-context'
 
 // Property types for dropdown
 const PROPERTY_TYPES = [
@@ -156,6 +157,18 @@ export default function AddListingPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { user, loading } = useAuth()
+  const [loginPrompted, setLoginPrompted] = useState(false)
+
+  // If not authenticated, prompt login modal (no redirect) and gate the page UI
+  useEffect(() => {
+    if (!loading && !user && !loginPrompted) {
+      setLoginPrompted(true)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
+    }
+  }, [user, loading, loginPrompted])
 
   const handleAutoFill = async () => {
     if (!rawText.trim()) return
@@ -257,6 +270,31 @@ export default function AddListingPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // If unauthenticated, show a friendly prompt and block the form
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login required</h1>
+            <p className="text-gray-600 mb-6">Please login to add a new listing.</p>
+            <Button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new Event('open-login-modal'))
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Open Login
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
