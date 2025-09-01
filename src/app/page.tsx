@@ -78,8 +78,7 @@ export default function Home() {
   }
 
   const handleFlatClick = useCallback((flat: Flat) => {
-    console.log('Flat clicked:', flat.title)
-    // TODO: Navigate to flat detail page
+    window.location.href = `/listing/${flat.id}`
   }, [])
 
   const handleMapItemHover = useCallback((itemId: string | null) => {

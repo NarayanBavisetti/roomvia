@@ -27,6 +27,13 @@ CREATE TABLE listings (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Establish relationship to profiles for PostgREST embedding
+ALTER TABLE listings
+  ADD CONSTRAINT listings_user_profiles_fk
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
 -- Create the flatmates table
 CREATE TABLE flatmates (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -50,6 +57,13 @@ CREATE TABLE flatmates (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Establish relationship to profiles for PostgREST embedding
+ALTER TABLE flatmates
+  ADD CONSTRAINT flatmates_user_profiles_fk
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
 
 -- Create the profiles table
 CREATE TABLE profiles (
