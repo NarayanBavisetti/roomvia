@@ -15,10 +15,14 @@ import {
   Upload, 
   Sparkles, 
   X,
-  DollarSign
+  DollarSign,
+  Link2,
+  Globe,
+  Loader2
 } from 'lucide-react'
 import { supabase, type FlatmatePreferences } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 // Property types for dropdown
 const PROPERTY_TYPES = [
@@ -77,6 +81,48 @@ const initialFormData: FormData = {
   },
   contactNumber: '',
   images: []
+}
+
+// Accept sharer, short post links (/share/p/...), generic /share/, and common post routes
+const isValidFacebookUrl = (url: string) => {
+  const fbRegex = /^(https?:\/\/)?(www\.)?(facebook|fb)\.com\/(sharer\/sharer\.php\?u=|share\/p\/|share\/?$|permalink\.php|photo\.php|story\.php|[^/]+\/posts\/|[^/]+\/photos\/|[^/]+\/videos\/|groups\/|events\/|watch\/|reel\/|.*)/i
+  return fbRegex.test(url.trim())
+}
+
+// Function to extract Facebook post content
+const extractFacebookPostData = async (url: string): Promise<string> => {
+  // Validate Facebook URL
+  if (!isValidFacebookUrl(url)) {
+    throw new Error('Please enter a valid Facebook post URL')
+  }
+  
+  try {
+    // In a real implementation, you would use a service like:
+    // 1. Facebook Graph API (requires app permissions)
+    // 2. Web scraping service (like Puppeteer or Playwright)
+    // 3. Third-party API (like Linkpedia, Web Scraper API, etc.)
+    
+    // For now, simulate the extraction process
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    
+    // Mock extracted content - in real app, this would come from the actual FB post
+    const mockExtractedText = `
+URGENT: Male Flatmate Needed | Move-in immediately
+🏡 Spacious 3BHK | 2500 sq. ft | Madhapur, Siddhi Vinayak Nagar | 2nd Floor
+• Rent: ₹18,166 (includes maintenance)
+• Security Deposit: ₹36,332
+• Contact: +91 8220147153
+• Amenities: Lift, Security, Fully Furnished, AC, WiFi
+• Looking for: Male, Non-smoker, Pet-friendly
+• Additional Details: Well-connected area, near IT hub, excellent transport connectivity
+• Expenses: Electricity, Wi-Fi split equally among roommates
+    `
+    
+    return mockExtractedText.trim()
+  } catch (error) {
+    console.error('Facebook extraction error:', error)
+    throw new Error('Failed to extract data from Facebook post. Please try copying the text manually.')
+  }
 }
 
 // AI parsing function (mock implementation for now)
@@ -153,11 +199,14 @@ const parseListingText = async (text: string): Promise<Partial<FormData>> => {
 export default function AddListingPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [rawText, setRawText] = useState('')
+  const [facebookUrl, setFacebookUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai')
+  const [inputType, setInputType] = useState<'text' | 'facebook'>('text')
   const { user, loading } = useAuth()
   const [loginPrompted, setLoginPrompted] = useState(false)
+  const router = useRouter()
 
   // If not authenticated, prompt login modal (no redirect) and gate the page UI
   useEffect(() => {
@@ -169,16 +218,32 @@ export default function AddListingPage() {
     }
   }, [user, loading, loginPrompted])
 
+  const canGenerate = inputType === 'text' ? rawText.trim().length > 0 : isValidFacebookUrl(facebookUrl)
+
   const handleAutoFill = async () => {
-    if (!rawText.trim()) return
+    if (inputType === 'text' && !rawText.trim()) return
+    if (inputType === 'facebook' && !isValidFacebookUrl(facebookUrl)) {
+      alert('Please enter a valid Facebook post URL')
+      return
+    }
     
     setIsProcessing(true)
     try {
-      const parsedData = await parseListingText(rawText)
+      let textToParse = rawText
+      
+      // If Facebook URL, first extract the post content
+      if (inputType === 'facebook') {
+        textToParse = await extractFacebookPostData(facebookUrl)
+        setRawText(textToParse) // Show extracted text
+      }
+      
+      // Then parse the text with AI
+      const parsedData = await parseListingText(textToParse)
       setFormData(prev => ({ ...prev, ...parsedData, userType: 'normal' })) // Default to normal user
       setActiveTab('manual') // Switch to manual form after processing
     } catch (error) {
       console.error('AI parsing failed:', error)
+      alert(`❌ Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsProcessing(false)
     }
@@ -420,34 +485,62 @@ export default function AddListingPage() {
       {/* Fullscreen Layout with Toggle */}
       <main className="h-screen flex flex-col pt-16">
         {/* Header Bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Toggle Tabs */}
-            <div className="flex bg-gray-100 rounded-xl p-1 max-w-xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab('ai')}
-                className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all ${
-                  activeTab === 'ai'
-                    ? 'bg-white text-purple-500 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Sparkles className="h-4 w-4 mr-2 inline" />
-                AI Creator
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('manual')}
-                className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all ${
-                  activeTab === 'manual'
-                    ? 'bg-white text-purple-500 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Home className="h-4 w-4 mr-2 inline" />
-                Manual Form
-              </button>
+        <div className="bg-white border-b border-gray-200/60 shadow-sm">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              {/* Toggle Tabs - Refined Design */}
+              <div className="flex items-center">
+                <div
+                  className="bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-xs"
+                  role="tablist"
+                  aria-label="Listing input mode"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'ai'}
+                    onClick={() => setActiveTab('ai')}
+                    className={`flex items-center justify-center min-w-[140px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
+                      activeTab === 'ai'
+                        ? 'bg-purple-500 text-white shadow-sm'
+                        : 'text-gray-700 hover:text-purple-600 hover:bg-white'
+                    }`}
+                  >
+                    <Sparkles className={`h-4 w-4 mr-2 transition-colors duration-200 ${
+                      activeTab === 'ai' ? 'text-white' : 'text-purple-500'
+                    }`} />
+                    AI Creator
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'manual'}
+                    onClick={() => setActiveTab('manual')}
+                    className={`flex items-center justify-center min-w-[140px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
+                      activeTab === 'manual'
+                        ? 'bg-purple-500 text-white shadow-sm'
+                        : 'text-gray-700 hover:text-purple-600 hover:bg-white'
+                    }`}
+                  >
+                    <Home className={`h-4 w-4 mr-2 transition-colors duration-200 ${
+                      activeTab === 'manual' ? 'text-white' : 'text-purple-500'
+                    }`} />
+                    Manual Form
+                  </button>
+                </div>
+              </div>
+
+              {/* Broker Account Link - Clean Design */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Are you a broker?</span>
+                <button
+                  type="button"
+                  onClick={() => router.push('/profile')}
+                  className="text-purple-600 hover:text-purple-700 font-medium underline underline-offset-2 hover:underline-offset-4 transition-all duration-200"
+                >
+                  Change to broker account
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -456,25 +549,56 @@ export default function AddListingPage() {
         <div className="flex-1 overflow-hidden">
           {activeTab === 'ai' ? (
             /* AI Listing Creator View */
-            <div className="h-full overflow-y-auto bg-gray-50">
-              <div className="max-w-4xl mx-auto p-8">                
-                <div className="space-y-8">
+            <div className="h-full overflow-y-auto bg-gray-50/30">
+              <div className="max-w-4xl mx-auto p-6">                
+                <div className="space-y-6">
                   {/* AI Input Section */}
-                  <Card className="shadow-sm border-gray-200">
-                    <CardContent className="p-8">
-                      <div className="space-y-6">
+                  <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                      <div className="space-y-5">
                         <div>
-                                                <h3 className="text-base font-semibold text-gray-900 leading-tight truncate">
-                        AI Listing Creator
-                      </h3>
-                          <Label htmlFor="aiRawText" className="text-base font-medium text-gray-800 mb-3 block">
-                            Paste your listing text
-                          </Label>
-                          <Textarea
-                            id="aiRawText"
-                            value={rawText}
-                            onChange={(e) => setRawText(e.target.value)}
-                            placeholder="Example:
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            AI Listing Creator
+                          </h3>
+                          
+                          {/* Input Type Toggle */}
+                          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 max-w-sm">
+                            <button
+                              type="button"
+                              onClick={() => setInputType('text')}
+                              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                                inputType === 'text'
+                                  ? 'bg-white text-purple-600 shadow-sm'
+                                  : 'text-gray-600 hover:text-gray-900'
+                              }`}
+                            >
+                              <Sparkles className="h-4 w-4 mr-1 inline" />
+                              Text Input
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setInputType('facebook')}
+                              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                                inputType === 'facebook'
+                                  ? 'bg-white text-purple-600 shadow-sm'
+                                  : 'text-gray-600 hover:text-gray-900'
+                              }`}
+                            >
+                              <Globe className="h-4 w-4 mr-1 inline" />
+                              Facebook Post
+                            </button>
+                          </div>
+
+                          {inputType === 'text' ? (
+                            <div>
+                              <Label htmlFor="aiRawText" className="text-base font-medium text-gray-800 mb-3 block">
+                                Paste your listing text
+                              </Label>
+                              <Textarea
+                                id="aiRawText"
+                                value={rawText}
+                                onChange={(e) => setRawText(e.target.value)}
+                                placeholder="Example:
 URGENT: Male Flatmate Needed | Move-in immediately
 🏡 Spacious 3BHK | 2500 sq. ft | Madhapur, Siddhi Vinayak Nagar | 2nd Floor
 • Rent: ₹18,166 (includes maintenance)
@@ -482,66 +606,48 @@ URGENT: Male Flatmate Needed | Move-in immediately
 • Contact: +91 8220147153
 • Amenities: Lift, Security, Fully Furnished, AC, WiFi
 • Looking for: Male, Non-smoker, Pet-friendly..."
-                            rows={10}
-                            className="resize-none border-gray-300 text-sm"
-                          />
-                          <p className="text-sm text-gray-500 mt-3">
-                            Include as many details as possible - rent, location, amenities, preferences, and contact information
-                          </p>
-                        </div>
-                        
-                        {/* Image Upload Section */}
-                        <div>
-                          <Label className="text-base font-medium text-gray-800 mb-3 block">
-                            Property Images (Optional)
-                          </Label>
-                          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-500 transition-colors">
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                              id="aiImageUpload"
-                            />
-                            <label htmlFor="aiImageUpload" className="cursor-pointer block">
-                              <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                              <p className="text-gray-600 mb-1">Click to upload or drag and drop</p>
-                              <p className="text-sm text-gray-500">JPEG, PNG, WebP • Max 10 images</p>
-                            </label>
-                          </div>
-                          
-                          {/* Image Previews */}
-                          {formData.images.length > 0 && (
-                            <div className="mt-4 grid grid-cols-3 md:grid-cols-5 gap-4">
-                              {formData.images.map((image, index) => (
-                                <div key={index} className="relative group">
-                                  <div
-                                    style={{
-                                      backgroundImage: `url(${URL.createObjectURL(image)})`,
-                                      backgroundSize: 'cover',
-                                      backgroundPosition: 'center'
-                                    }}
-                                    className="w-full h-20 rounded-lg"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => removeImage(index)}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
+                                rows={10}
+                                className="resize-none border-gray-300 text-sm"
+                              />
+                              <p className="text-sm text-gray-500 mt-3">
+                                Include as many details as possible - rent, location, amenities, preferences, and contact information
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <Label htmlFor="facebookUrl" className="text-base font-medium text-gray-800 mb-3 block">
+                                Facebook Post URL
+                              </Label>
+                              <div className="relative">
+                                <Link2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <Input
+                                  id="facebookUrl"
+                                  value={facebookUrl}
+                                  onChange={(e) => setFacebookUrl(e.target.value)}
+                                  placeholder="https://www.facebook.com/share/p/EXAMPLE"
+                                  className="pl-10 border-gray-300"
+                                />
+                              </div>
+                              <p className="text-sm text-gray-500 mt-3">
+                                Supports sharer links and short post links like /share/p/...
+                              </p>
+                              
+                              {/* Show extracted text preview */}
+                              {rawText && (
+                                <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                                  <h4 className="text-sm font-medium text-gray-700 mb-2">Extracted Content:</h4>
+                                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{rawText}</p>
                                 </div>
-                              ))}
+                              )}
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex justify-center pt-4">
+                        <div className="flex justify-center pt-3">
                           <Button
                             onClick={handleAutoFill}
-                            disabled={!rawText.trim() || isProcessing}
-                            className="bg-purple-500 hover:bg-purple-800 text-white px-8 py-3 rounded-xl text-base font-semibold"
+                            disabled={!canGenerate || isProcessing}
+                            className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             {isProcessing ? (
                               <>
@@ -565,15 +671,15 @@ URGENT: Male Flatmate Needed | Move-in immediately
             </div>
           ) : (
             /* Manual Form View */
-            <div className="h-full overflow-y-auto bg-gray-50">
-              <div className="max-w-6xl mx-auto p-8">
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="h-full overflow-y-auto bg-gray-50/30">
+              <div className="max-w-6xl mx-auto p-6">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left Column */}
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {/* Basic Information */}
-                    <Card className="shadow-sm border-gray-200">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Property Details</CardTitle>
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold">Property Details</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
@@ -655,9 +761,9 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Pricing */}
-                    <Card className="shadow-sm border-gray-200">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="flex items-center gap-2 text-lg">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                           <DollarSign className="h-5 w-5 text-purple-500" />
                           Pricing Details
                         </CardTitle>
@@ -715,11 +821,11 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   </div>
 
                   {/* Right Column */}
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {/* Highlights/Amenities */}
-                    <Card className="shadow-sm border-gray-200">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Highlights & Amenities</CardTitle>
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold">Highlights & Amenities</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 gap-3">
@@ -756,9 +862,9 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Flatmate Preferences */}
-                    <Card className="shadow-sm border-gray-200">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Flatmate Preferences</CardTitle>
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold">Flatmate Preferences</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -829,9 +935,9 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Contact & Images */}
-                    <Card className="shadow-sm border-gray-200">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Contact & Images</CardTitle>
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold">Contact & Images</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
@@ -899,11 +1005,11 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   </div>
 
                   {/* Submit Button - Full Width Across Both Columns */}
-                  <div className="lg:col-span-2 pt-4">
+                  <div className="lg:col-span-2 pt-3">
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-purple-500 hover:bg-purple-800 text-white py-4 text-base font-semibold rounded-xl"
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       {isSubmitting ? (
                         <>

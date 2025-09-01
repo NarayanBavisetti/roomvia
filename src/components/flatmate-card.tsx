@@ -19,7 +19,7 @@ import {
   Utensils,
   MessageCircle
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flatmate } from '@/lib/supabase'
@@ -64,25 +64,6 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
   // Mock flatmate data - in real app this would be the actual user
   const flatmateEmail = `${flatmate.name.toLowerCase().replace(' ', '.')}@example.com`
-
-  useEffect(() => {
-    let cancelled = false
-    async function fetchSaved() {
-      if (!user) {
-        setIsSaved(false)
-        return
-      }
-      try {
-        const { savesApi } = await import('@/lib/saves')
-        const saved = await savesApi.isSaved('person', flatmate.id)
-        if (!cancelled) setIsSaved(saved)
-      } catch (e) {
-        console.error('Failed to load saved state:', e)
-      }
-    }
-    fetchSaved()
-    return () => { cancelled = true }
-  }, [user, flatmate.id])
 
   const handleConnect = (e: React.MouseEvent) => {
     e.stopPropagation()

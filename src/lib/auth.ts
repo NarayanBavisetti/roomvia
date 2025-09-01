@@ -12,6 +12,26 @@ export interface AuthContextType {
   signOut: () => Promise<void>
 }
 
+let inFlightUserPromise: Promise<User | null> | null = null
+
+// Fast user getter: prefers cached session, de-dupes network fetches
+export const getUserFast = async (): Promise<User | null> => {
+  // Try session first (no network)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.user) return session.user
+
+  // Fall back to network, but de-duplicate parallel calls
+  if (!inFlightUserPromise) {
+    inFlightUserPromise = supabase.auth
+      .getUser()
+      .then(({ data }) => data.user ?? null)
+      .finally(() => {
+        inFlightUserPromise = null
+      })
+  }
+  return inFlightUserPromise
+}
+
 // Sign in with email OTP
 export const signInWithEmail = async (email: string) => {
   try {
@@ -91,10 +111,9 @@ export const signOut = async () => {
   }
 }
 
-// Get current user
+// Get current user (fast path)
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  return getUserFast()
 }
 
 // Listen to auth changes

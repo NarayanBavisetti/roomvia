@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getUserFast } from "@/lib/auth";
 
 export type SaveType = "flat" | "person";
 
@@ -9,15 +10,18 @@ export interface SaveItem {
   created_at: string;
 }
 
+// Simple in-memory dedupe and failure tracking
+const pendingKeys = new Map<string, Promise<boolean>>();
+const failureCounts = new Map<string, number>();
+const blockedKeys = new Set<string>(); // stop calling after 3 failures per key
+
 export const savesApi = {
   async toggleSave(
     type: SaveType,
     targetId: string
   ): Promise<{ saved: boolean; error: Error | null }> {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getUserFast();
       if (!user) return { saved: false, error: new Error("Not authenticated") };
 
       // Check existing
@@ -53,9 +57,7 @@ export const savesApi = {
     type?: SaveType
   ): Promise<{ items: SaveItem[]; error: Error | null }> {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getUserFast();
       if (!user) return { items: [], error: new Error("Not authenticated") };
 
       let query = supabase
@@ -75,21 +77,42 @@ export const savesApi = {
       return { items: [], error: e as Error };
     }
   },
+
   async isSaved(type: SaveType, targetId: string): Promise<boolean> {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getUserFast();
       if (!user) return false;
-      const { data, error } = await supabase
-        .from("saves")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("type", type)
-        .eq("target_id", targetId)
-        .limit(1);
-      if (error) return false;
-      return Array.isArray(data) && data.length > 0;
+      const key = `${user.id}:${type}:${targetId}`;
+
+      if (blockedKeys.has(key)) return false; // stop retrying this key
+
+      if (pendingKeys.has(key)) {
+        return await pendingKeys.get(key)!;
+      }
+
+      const promise: Promise<boolean> = (async () => {
+        try {
+          const { data, error } = await supabase
+            .from("saves")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("type", type)
+            .eq("target_id", targetId)
+            .limit(1);
+          if (error) {
+            const count = (failureCounts.get(key) || 0) + 1;
+            failureCounts.set(key, count);
+            if (count >= 3) blockedKeys.add(key);
+            return false;
+          }
+          return Array.isArray(data) && data.length > 0;
+        } finally {
+          pendingKeys.delete(key);
+        }
+      })();
+
+      pendingKeys.set(key, promise);
+      return await promise;
     } catch {
       return false;
     }

@@ -225,12 +225,15 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
 
             {/* Search Button */}
             <Button 
+              type="button"
+              aria-label="Search listings"
+              title="Search listings"
               onClick={handleSearch}
               disabled={!selectedState || !selectedArea}
               size="icon"
-              className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 transition-all duration-200 ml-1"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm hover:from-purple-600 hover:to-purple-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ml-1"
             >
-              <Search className="h-4 w-4 text-primary-foreground" />
+              <Search className="h-5 w-5 text-primary-foreground" />
             </Button>
           </div>
         </div>

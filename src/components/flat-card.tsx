@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapPin, Bookmark, MessageCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flat } from '@/lib/supabase'
@@ -23,25 +23,6 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 
   // Mock owner data - in real app this would come from the flat object
   const ownerEmail = `owner_${flat.id}@example.com`
-
-  useEffect(() => {
-    let cancelled = false
-    async function fetchSaved() {
-      if (!user) {
-        setIsSaved(false)
-        return
-      }
-      try {
-        const { savesApi } = await import('@/lib/saves')
-        const saved = await savesApi.isSaved('flat', flat.id)
-        if (!cancelled) setIsSaved(saved)
-      } catch (e) {
-        console.error('Failed to load saved state:', e)
-      }
-    }
-    fetchSaved()
-    return () => { cancelled = true }
-  }, [user, flat.id])
 
   const handleMessageOwner = (e: React.MouseEvent) => {
     e.stopPropagation()
