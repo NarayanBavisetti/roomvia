@@ -62,6 +62,16 @@ interface AnalyticsListingCardProps {
   onShare?: (platform?: string) => void
 }
 
+// Props that can be injected into listing card children
+interface ChildAnalyticsHandlers {
+  onSave?: () => void
+  onInquiry?: () => void
+  onPhoneReveal?: () => void
+  onShare?: (platform?: string) => void
+  onFeatureClick?: (feature: string) => void
+  onPhotoClick?: (photoIndex: number) => void
+}
+
 export function AnalyticsListingCard({ 
   listing, 
   children, 
@@ -108,14 +118,17 @@ export function AnalyticsListingCard({
   }
 
   // Clone children and pass analytics handlers
-  const enhancedChildren = React.cloneElement(children as React.ReactElement, {
-    onSave: handleSave,
-    onInquiry: handleInquiry,
-    onPhoneReveal: handlePhoneReveal,
-    onShare: handleShare,
-    onFeatureClick: handleFeatureClick,
-    onPhotoClick: handlePhotoClick
-  })
+  const enhancedChildren = React.cloneElement<ChildAnalyticsHandlers>(
+    children as React.ReactElement<ChildAnalyticsHandlers>,
+    {
+      onSave: handleSave,
+      onInquiry: handleInquiry,
+      onPhoneReveal: handlePhoneReveal,
+      onShare: handleShare,
+      onFeatureClick: handleFeatureClick,
+      onPhotoClick: handlePhotoClick
+    }
+  )
 
   return (
     <ListingAnalyticsWrapper 
@@ -136,10 +149,13 @@ export function SearchAnalyticsWrapper({ children }: SearchAnalyticsWrapperProps
   const { onSearch, onFilterChange } = useSearchAnalytics()
 
   // Enhanced children with search tracking
-  const enhancedChildren = React.cloneElement(children as React.ReactElement, {
-    onSearch,
-    onFilterChange
-  })
+  const enhancedChildren = React.cloneElement<{ onSearch?: typeof onSearch; onFilterChange?: typeof onFilterChange }>(
+    children as React.ReactElement<{ onSearch?: typeof onSearch; onFilterChange?: typeof onFilterChange }>,
+    {
+      onSearch,
+      onFilterChange
+    }
+  )
 
   return <>{enhancedChildren}</>
 }

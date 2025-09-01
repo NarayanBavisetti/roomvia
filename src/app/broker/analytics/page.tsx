@@ -14,18 +14,11 @@ import {
   BarChart3, 
   TrendingUp, 
   Eye, 
-  Phone, 
   MessageSquare, 
-  DollarSign,
   MapPin,
-  Calendar,
   Target,
   Lightbulb,
   RefreshCw,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Users,
   Home,
   Search,
   Sparkles
@@ -58,8 +51,8 @@ export default function BrokerAnalyticsPage() {
   const { user, loading } = useAuth()
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null)
   const [listingPerformance, setListingPerformance] = useState<ListingPerformance[]>([])
-  const [searchTrends, setSearchTrends] = useState<any>(null)
-  const [marketTrends, setMarketTrends] = useState<any[]>([])
+  const [searchTrends, setSearchTrends] = useState<import('@/lib/analytics').SearchTrends | null>(null)
+  const [marketTrends, setMarketTrends] = useState<import('@/lib/analytics').MarketTrend[]>([])
   const [aiInsights, setAiInsights] = useState<BrokerInsights | null>(null)
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
   const [selectedTimeRange, setSelectedTimeRange] = useState<7 | 30 | 90>(30)
@@ -83,11 +76,19 @@ export default function BrokerAnalyticsPage() {
       const market = await analyticsService.getMarketTrends()
 
       if (analytics?.performance) {
-        setPerformanceMetrics(analytics.performance)
+        const listingCount = Math.max(listingData.length || analytics.performance.totalListings || 0, 1)
+        setPerformanceMetrics({
+          totalViews: analytics.performance.totalViews,
+          totalInquiries: analytics.performance.totalInquiries,
+          totalListings: analytics.performance.totalListings,
+          conversionRate: analytics.performance.conversionRate,
+          avgViewsPerListing: analytics.performance.totalViews / listingCount,
+          avgInquiriesPerListing: analytics.performance.totalInquiries / listingCount
+        })
       }
 
       // Process listing data
-      const processedListings = listingData.map((item: any) => ({
+      const processedListings = listingData.map((item) => ({
         listingId: item.listing_id,
         title: item.listing?.title || 'Unknown Listing',
         location: item.listing?.location || 'Unknown Location',
@@ -121,7 +122,7 @@ export default function BrokerAnalyticsPage() {
         searchPatterns: {
           keywords: searchTrends?.keywords || [],
           locations: searchTrends?.locations || [],
-          priceRanges: searchTrends?.priceRanges?.map((r: any) => r.min) || [],
+          priceRanges: (searchTrends?.priceRanges || []).map((r) => r.min),
           propertyTypes: searchTrends?.propertyTypes || [],
           filters: []
         },

@@ -5,7 +5,9 @@ CREATE TABLE listings (
   user_type TEXT NOT NULL CHECK (user_type IN ('normal', 'broker')),
   title TEXT NOT NULL,
   property_type TEXT NOT NULL,
-  location TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'India',
   area_sqft INTEGER,
   floor INTEGER,
   description TEXT,
@@ -27,7 +29,9 @@ INSERT INTO listings (
   user_type, 
   title, 
   property_type, 
-  location, 
+  city,
+  state,
+  country,
   area_sqft, 
   floor, 
   description, 
@@ -44,7 +48,9 @@ INSERT INTO listings (
   'normal',
   'Spacious 3BHK in Madhapur, Siddhi Vinayak Nagar',
   '3BHK',
-  'Madhapur, Siddhi Vinayak Nagar',
+  'Madhapur',
+  'Telangana',
+  'India',
   2500,
   2,
   'Looking for a cool, easy-going third roommate to join our fully furnished 3BHK in Madhapur. Well-connected location with 12 mins to Knowledge City Sattva and Mindspace, 15 mins to Gachibowli & Kondapur.',
@@ -61,7 +67,9 @@ INSERT INTO listings (
   'broker',
   'Modern 2BHK Apartment in Koramangala',
   '2BHK',
-  'Koramangala 5th Block',
+  'Koramangala',
+  'Karnataka',
+  'India',
   1200,
   4,
   'Premium 2BHK apartment with modern amenities in the heart of Koramangala. Close to restaurants, cafes, and metro connectivity.',
@@ -77,7 +85,10 @@ INSERT INTO listings (
 
 -- Create indexes for better performance
 CREATE INDEX idx_listings_property_type ON listings(property_type);
-CREATE INDEX idx_listings_location ON listings(location);
+CREATE INDEX idx_listings_city ON listings(city);
+CREATE INDEX idx_listings_state ON listings(state);
+CREATE INDEX idx_listings_country ON listings(country);
+CREATE INDEX idx_listings_location_combined ON listings(city, state, country);
 CREATE INDEX idx_listings_rent ON listings(rent);
 CREATE INDEX idx_listings_created_at ON listings(created_at);
 CREATE INDEX idx_listings_user_type ON listings(user_type);

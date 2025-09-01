@@ -17,12 +17,14 @@ import {
   X,
   DollarSign,
   Link2,
-  Globe,
-  Loader2
+  Globe
 } from 'lucide-react'
 import { supabase, type FlatmatePreferences } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
+import ImageUpload from '@/components/image-upload'
+import { CloudinaryImage } from '@/lib/cloudinary'
+import { openAIService } from '@/lib/openai'
 
 // Property types for dropdown
 const PROPERTY_TYPES = [
@@ -46,7 +48,9 @@ interface FormData {
   userType: 'normal' | 'broker'
   title: string
   propertyType: string
-  location: string
+  city: string
+  state: string
+  country: string
   areaSqft: string
   floor: string
   description: string
@@ -57,14 +61,16 @@ interface FormData {
   expenses: string
   flatmatePreferences: FlatmatePreferences
   contactNumber: string
-  images: File[]
+  images: CloudinaryImage[]
 }
 
 const initialFormData: FormData = {
   userType: 'normal',
   title: '',
   propertyType: '',
-  location: '',
+  city: '',
+  state: '',
+  country: 'India', // Default to India
   areaSqft: '',
   floor: '',
   description: '',
@@ -125,75 +131,42 @@ URGENT: Male Flatmate Needed | Move-in immediately
   }
 }
 
-// AI parsing function (mock implementation for now)
-const parseListingText = async (text: string): Promise<Partial<FormData>> => {
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  // Mock parsing logic for the example text
-  const parsed: Partial<FormData> = {}
-  
-  // Extract title
-  if (text.includes('Male Flatmate Needed') && text.includes('3BHK')) {
-    parsed.title = 'Spacious 3BHK in Madhapur, Siddhi Vinayak Nagar'
-    parsed.propertyType = '3BHK'
-  }
-  
-  // Extract location
-  if (text.includes('Madhapur') && text.includes('Siddhi Vinayak Nagar')) {
-    parsed.location = 'Madhapur, Siddhi Vinayak Nagar'
-  }
-  
-  // Extract area
-  const areaMatch = text.match(/(\d+)\s*sq\.?\s*ft/i)
-  if (areaMatch) {
-    parsed.areaSqft = areaMatch[1]
-  }
-  
-  // Extract floor
-  const floorMatch = text.match(/(\d+)(?:st|nd|rd|th)?\s*floor/i)
-  if (floorMatch) {
-    parsed.floor = floorMatch[1]
-  }
-  
-  // Extract rent
-  const rentMatch = text.match(/₹\s*(\d+(?:,\d+)*)/i)
-  if (rentMatch) {
-    parsed.rent = rentMatch[1].replace(/,/g, '')
-  }
-  
-  // Extract highlights
-  const highlights: string[] = []
-  if (text.includes('lift')) highlights.push('Lift')
-  if (text.includes('watchman') || text.includes('security')) highlights.push('Security')
-  if (text.includes('furnished')) highlights.push('Fully Furnished')
-  if (text.includes('AC')) highlights.push('AC')
-  if (text.includes('Wi-Fi') || text.includes('WiFi')) highlights.push('WiFi')
-  parsed.highlights = highlights
-  
-  // Extract contact
-  const phoneMatch = text.match(/\+91\s*(\d+)/i)
-  if (phoneMatch) {
-    parsed.contactNumber = `+91 ${phoneMatch[1]}`
-  }
-  
-  // Extract flatmate preferences
-  if (text.includes('Male preferred')) {
-    parsed.flatmatePreferences = {
-      gender: 'Male',
-      smoker: false,
-      food: text.includes('Non-veg friendly') ? 'Any' : 'Any',
-      pets: text.includes('Pet friendly')
+// AI parsing function using GPT-4o mini
+const parseListingText = async (text: string, userId?: string): Promise<Partial<FormData>> => {
+  try {
+    if (!userId) {
+      throw new Error('User authentication required for AI parsing')
     }
+
+    // Use the OpenAI service to parse the text
+    const result = await openAIService.parseListingText(userId, text, 'text')
+    
+    if (!result) {
+      throw new Error('Failed to parse the listing text. Please try again or fill the form manually.')
+    }
+
+    // Convert the structured result to FormData format
+    return {
+      title: result.formData.title,
+      propertyType: result.formData.propertyType,
+      city: result.formData.city,
+      state: result.formData.state,
+      country: result.formData.country,
+      areaSqft: result.formData.areaSqft,
+      floor: result.formData.floor,
+      description: result.formData.description,
+      highlights: result.formData.highlights,
+      rent: result.formData.rent,
+      maintenance: result.formData.maintenance,
+      securityDeposit: result.formData.securityDeposit,
+      expenses: result.formData.expenses,
+      flatmatePreferences: result.formData.flatmatePreferences,
+      contactNumber: result.formData.contactNumber
+    }
+  } catch (error) {
+    console.error('OpenAI parsing error:', error)
+    throw error
   }
-  
-  // Extract description
-  parsed.description = 'Looking for a cool, easy-going third roommate to join our fully furnished 3BHK in Madhapur. Well-connected location with excellent amenities.'
-  
-  // Extract expenses
-  parsed.expenses = 'Electricity, Wi-Fi, Gas: Split equally, Maid service: 1k, Furniture Rental: 3k'
-  
-  return parsed
 }
 
 export default function AddListingPage() {
@@ -238,7 +211,7 @@ export default function AddListingPage() {
       }
       
       // Then parse the text with AI
-      const parsedData = await parseListingText(textToParse)
+      const parsedData = await parseListingText(textToParse, user?.id)
       setFormData(prev => ({ ...prev, ...parsedData, userType: 'normal' })) // Default to normal user
       setActiveTab('manual') // Switch to manual form after processing
     } catch (error) {
@@ -258,41 +231,11 @@ export default function AddListingPage() {
     }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
+  const handleImagesChange = (images: CloudinaryImage[]) => {
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...files]
+      images
     }))
-  }
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
-  }
-
-  const uploadImageToSupabase = async (file: File, listingId: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${listingId}/${Date.now()}.${fileExt}`
-    
-    const { error } = await supabase.storage
-      .from('listing-images')
-      .upload(fileName, file)
-
-    if (error) {
-      console.error('Error uploading image:', error)
-      // Return a fallback URL if upload fails
-      return `https://images.unsplash.com/photo-${Date.now()}?w=500&h=300&fit=crop`
-    }
-
-    // Get public URL
-    const { data: publicData } = supabase.storage
-      .from('listing-images')
-      .getPublicUrl(fileName)
-
-    return publicData.publicUrl
   }
 
   const validateForm = (): string[] => {
@@ -301,10 +244,13 @@ export default function AddListingPage() {
     // Required field validation
     if (!formData.title.trim()) errors.push('Title is required')
     if (!formData.propertyType) errors.push('Property type is required')
-    if (!formData.location.trim()) errors.push('Location is required')
+    if (!formData.city.trim()) errors.push('City is required')
+    if (!formData.state.trim()) errors.push('State is required')
+    if (!formData.country.trim()) errors.push('Country is required')
     if (!formData.rent || parseInt(formData.rent) <= 0) errors.push('Valid rent amount is required')
     if (!formData.securityDeposit || parseInt(formData.securityDeposit) <= 0) errors.push('Valid security deposit is required')
     if (!formData.contactNumber.trim()) errors.push('Contact number is required')
+    if (!formData.images || formData.images.length === 0) errors.push('At least one property image is required')
     
     // Contact number format validation
     const phoneRegex = /^(\+91[\s-]?)?[6-9]\d{9}$/
@@ -353,26 +299,8 @@ export default function AddListingPage() {
         throw new Error(`Please fix the following errors:\n${validationErrors.join('\n')}`)
       }
 
-      // Generate a temporary ID for image uploads
-      const tempListingId = `temp-${Date.now()}`
-      
-      // Upload images to Supabase Storage with progress tracking
-      const imageUrls: string[] = []
-      if (formData.images.length > 0) {
-        console.log(`Uploading ${formData.images.length} images...`)
-        
-        for (let i = 0; i < formData.images.length; i++) {
-          try {
-            const imageUrl = await uploadImageToSupabase(formData.images[i], tempListingId)
-            imageUrls.push(imageUrl)
-            console.log(`Uploaded image ${i + 1}/${formData.images.length}`)
-          } catch (imageError) {
-            console.warn(`Failed to upload image ${i + 1}:`, imageError)
-            // Add fallback image URL for failed uploads
-            imageUrls.push(`https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop`)
-          }
-        }
-      }
+      // Images are already uploaded to Cloudinary via the ImageUpload component
+      console.log(`Using ${formData.images.length} pre-uploaded images from Cloudinary`)
 
       // Prepare data for Supabase
       const listingData = {
@@ -380,7 +308,9 @@ export default function AddListingPage() {
         user_type: formData.userType || 'normal', // Default to normal if not set
         title: formData.title.trim(),
         property_type: formData.propertyType,
-        location: formData.location.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        country: formData.country.trim(),
         area_sqft: formData.areaSqft ? parseInt(formData.areaSqft) : null,
         floor: formData.floor ? parseInt(formData.floor) : null,
         description: formData.description?.trim() || null,
@@ -391,7 +321,7 @@ export default function AddListingPage() {
         expenses: formData.expenses?.trim() || null,
         flatmate_preferences: formData.flatmatePreferences,
         contact_number: formData.contactNumber.trim(),
-        image_urls: imageUrls,
+        images: formData.images, // Store Cloudinary image objects
         status: 'active'
       }
 
@@ -710,16 +640,40 @@ URGENT: Male Flatmate Needed | Move-in immediately
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
-                            <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location *</Label>
-                            <Input
-                              id="location"
-                              value={formData.location}
-                              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                              placeholder="e.g., Koramangala 5th Block"
-                              required
-                              className="mt-1 border-gray-300"
-                            />
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <Label htmlFor="city" className="text-sm font-medium text-gray-700">City *</Label>
+                              <Input
+                                id="city"
+                                value={formData.city}
+                                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                                placeholder="e.g., Bangalore"
+                                required
+                                className="mt-1 border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="state" className="text-sm font-medium text-gray-700">State *</Label>
+                              <Input
+                                id="state"
+                                value={formData.state}
+                                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                                placeholder="e.g., Karnataka"
+                                required
+                                className="mt-1 border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country *</Label>
+                              <Input
+                                id="country"
+                                value={formData.country}
+                                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                                placeholder="e.g., India"
+                                required
+                                className="mt-1 border-gray-300"
+                              />
+                            </div>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -953,52 +907,12 @@ URGENT: Male Flatmate Needed | Move-in immediately
                         </div>
 
                         <div>
-                          <Label className="text-sm font-medium text-gray-700">Property Images</Label>
-                          <div className="mt-2">
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                              id="imageUpload"
-                            />
-                            <label
-                              htmlFor="imageUpload"
-                              className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100"
-                            >
-                              <div className="flex flex-col items-center justify-center">
-                                <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                                <p className="text-xs text-gray-500">Click to upload images</p>
-                              </div>
-                            </label>
-                          </div>
-
-                          {formData.images.length > 0 && (
-                            <div className="mt-4 grid grid-cols-4 gap-3">
-                              {formData.images.map((image, index) => (
-                                <div key={index} className="relative">
-                                  <div
-                                    style={{ 
-                                      backgroundImage: `url(${URL.createObjectURL(image)})`,
-                                      backgroundSize: 'cover',
-                                      backgroundPosition: 'center'
-                                    }}
-                                    className="w-full h-20 rounded-lg"
-                                    role="img"
-                                    aria-label={`Preview ${index + 1}`}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => removeImage(index)}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <ImageUpload
+                            images={formData.images}
+                            onImagesChange={handleImagesChange}
+                            maxImages={10}
+                            disabled={isSubmitting}
+                          />
                         </div>
                       </CardContent>
                     </Card>

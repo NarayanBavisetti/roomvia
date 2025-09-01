@@ -14,73 +14,7 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
 import type { State, Area } from '@/lib/api'
 
-// Mock data for development (replace with Supabase data when configured) 
-// Using fixed timestamp to prevent hydration mismatches
-// const FIXED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
-
-// Note: Mock data is now handled in the useFlatsData hook
-/* const mockFlats: Flat[] = [
-  {
-    id: '1',
-    title: 'Modern 2BHK in Koramangala',
-    location: 'Koramangala, Bangalore',
-    rent: 25000,
-    image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop',
-    room_type: '2BHK',
-    tags: ['Furnished', 'Pet friendly', 'Balcony'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '2',
-    title: 'Spacious 1BHK near Metro',
-    location: 'Indiranagar, Bangalore',
-    rent: 18000,
-    image_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
-    room_type: '1BHK',
-    tags: ['Semi-furnished', 'Metro nearby', 'Parking'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '3',
-    title: 'Luxury 3BHK with Pool',
-    location: 'Whitefield, Bangalore',
-    rent: 45000,
-    image_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop',
-    room_type: '3BHK',
-    tags: ['Fully furnished', 'Swimming pool', 'Gym', 'Security'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '4',
-    title: 'Cozy Studio Apartment',
-    location: 'HSR Layout, Bangalore',
-    rent: 12000,
-    image_url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&h=300&fit=crop',
-    room_type: 'Studio',
-    tags: ['Furnished', 'WiFi', 'Kitchen'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '5',
-    title: 'Family 2BHK with Garden',
-    location: 'Electronic City, Bangalore',
-    rent: 20000,
-    image_url: 'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=500&h=300&fit=crop',
-    room_type: '2BHK',
-    tags: ['Semi-furnished', 'Garden', 'Pet friendly', 'Parking'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '6',
-    title: 'Modern 1BHK in IT Hub',
-    location: 'Bellandur, Bangalore',
-    rent: 22000,
-    image_url: 'https://images.unsplash.com/photo-1571624436279-b272aff752b5?w=500&h=300&fit=crop',
-    room_type: '1BHK',
-    tags: ['Fully furnished', 'Tech park nearby', 'AC', 'WiFi'],
-    created_at: FIXED_TIMESTAMP
-  }
-] */
+// All data now comes from the database through the useFlatsData hook
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)

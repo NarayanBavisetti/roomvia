@@ -8,92 +8,7 @@ import { Users, Search, Filter, Heart } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-// Mock data for development (replace with Supabase data when configured)
-// Using fixed timestamp to prevent hydration mismatches
-const FIXED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
-
-const mockFlatmates: Flatmate[] = [
-  {
-    id: '1',
-    name: 'Arjun Mehta',
-    age: 27,
-    gender: 'Male',
-    company: 'Google',
-    budget_min: 15000,
-    budget_max: 25000,
-    non_smoker: true,
-    food_preference: 'Veg',
-    gated_community: true,
-    amenities: ['Gym', 'WiFi', 'Balcony'],
-    preferred_locations: ['Indiranagar', 'Koramangala'],
-    image_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '2',
-    name: 'Priya Sharma',
-    age: 24,
-    gender: 'Female',
-    company: 'Deloitte',
-    budget_min: 12000,
-    budget_max: 20000,
-    non_smoker: true,
-    food_preference: 'Non-Veg',
-    gated_community: false,
-    amenities: ['Parking', 'Lift'],
-    preferred_locations: ['Whitefield', 'Bellandur'],
-    image_url: 'https://images.unsplash.com/photo-1494790108755-2616b332c830?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '3',
-    name: 'Rahul Verma',
-    age: 29,
-    gender: 'Male',
-    company: 'Swiggy',
-    budget_min: 18000,
-    budget_max: 30000,
-    non_smoker: true,
-    food_preference: 'Vegan',
-    gated_community: true,
-    amenities: ['Gym', 'Swimming Pool', 'Clubhouse'],
-    preferred_locations: ['HSR Layout', 'Sarjapur Road'],
-    image_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '4',
-    name: 'Sneha Kapoor',
-    age: 26,
-    gender: 'Female',
-    company: 'Infosys',
-    budget_min: 10000,
-    budget_max: 18000,
-    non_smoker: true,
-    food_preference: 'Veg',
-    gated_community: true,
-    amenities: ['WiFi', 'Balcony', 'Laundry'],
-    preferred_locations: ['Marathahalli', 'Outer Ring Road'],
-    image_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '5',
-    name: 'Vikram Singh',
-    age: 25,
-    gender: 'Male',
-    company: 'Microsoft',
-    budget_min: 20000,
-    budget_max: 35000,
-    non_smoker: false,
-    food_preference: 'Non-Veg',
-    gated_community: true,
-    amenities: ['Gym', 'WiFi', 'Parking', 'Security'],
-    preferred_locations: ['Koramangala', 'BTM Layout'],
-    image_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  }
-]
+// All flatmate data now comes from the database
 
 export default function FlatlatesPage() {
   const [flatmates, setFlatmates] = useState<Flatmate[]>([])
@@ -102,6 +17,7 @@ export default function FlatlatesPage() {
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
+  const [error, setError] = useState<string | null>(null)
 
   // Set mounted state
   useEffect(() => {
@@ -115,24 +31,25 @@ export default function FlatlatesPage() {
     const loadFlatmates = async () => {
       setLoading(true)
       try {
-        // Try to fetch from Supabase first, fallback to mock data
+        // Fetch from Supabase database
         const { data, error } = await supabase
           .from('flatmates')
           .select('*')
           .order('created_at', { ascending: false })
 
-        if (error || !data || data.length === 0) {
-          // Use mock data if Supabase is not configured or has no data
-          setFlatmates(mockFlatmates)
-          setFilteredFlatmates(mockFlatmates)
-        } else {
-          setFlatmates(data)
-          setFilteredFlatmates(data)
+        if (error) {
+          throw new Error(`Database error: ${error.message}`)
         }
-      } catch {
-        // Fallback to mock data if there's any error
-        setFlatmates(mockFlatmates)
-        setFilteredFlatmates(mockFlatmates)
+
+        // Use real data from database (empty array if no data)
+        setFlatmates(data || [])
+        setFilteredFlatmates(data || [])
+      } catch (err) {
+        console.error('Error loading flatmates:', err)
+        setError('Failed to load flatmates. Please try again.')
+        // Show empty state instead of mock data
+        setFlatmates([])
+        setFilteredFlatmates([])
       } finally {
         setLoading(false)
       }

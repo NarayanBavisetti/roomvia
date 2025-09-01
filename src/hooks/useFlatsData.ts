@@ -41,81 +41,7 @@ function getCacheKey(options: UseFlatsDataOptions): string {
   })
 }
 
-// Mock data fallback (same as before but extended)
-const FIXED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
-const mockFlats: Flat[] = [
-  {
-    id: '1',
-    title: 'Modern 2BHK in Koramangala',
-    location: 'Koramangala, Bangalore',
-    rent: 25000,
-    image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop',
-    room_type: '2BHK',
-    tags: ['Furnished', 'Pet friendly', 'Balcony'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '2',
-    title: 'Spacious 1BHK near Metro',
-    location: 'Indiranagar, Bangalore',
-    rent: 18000,
-    image_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
-    room_type: '1BHK',
-    tags: ['Semi-furnished', 'Metro nearby', 'Parking'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '3',
-    title: 'Luxury 3BHK with Pool',
-    location: 'Whitefield, Bangalore',
-    rent: 45000,
-    image_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop',
-    room_type: '3BHK',
-    tags: ['Fully furnished', 'Swimming pool', 'Gym', 'Security'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '4',
-    title: 'Cozy Studio Apartment',
-    location: 'HSR Layout, Bangalore',
-    rent: 12000,
-    image_url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&h=300&fit=crop',
-    room_type: 'Studio',
-    tags: ['Furnished', 'WiFi', 'Kitchen'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '5',
-    title: 'Family 2BHK with Garden',
-    location: 'Electronic City, Bangalore',
-    rent: 20000,
-    image_url: 'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=500&h=300&fit=crop',
-    room_type: '2BHK',
-    tags: ['Semi-furnished', 'Garden', 'Pet friendly', 'Parking'],
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '6',
-    title: 'Modern 1BHK in IT Hub',
-    location: 'Bellandur, Bangalore',
-    rent: 22000,
-    image_url: 'https://images.unsplash.com/photo-1571624436279-b272aff752b5?w=500&h=300&fit=crop',
-    room_type: '1BHK',
-    tags: ['Fully furnished', 'Tech park nearby', 'AC', 'WiFi'],
-    created_at: FIXED_TIMESTAMP
-  },
-  // Add more mock data for pagination testing
-  ...Array.from({ length: 50 }, (_, i) => ({
-    id: `mock_${i + 7}`,
-    title: `Property ${i + 7} in Bangalore`,
-    location: `Location ${i + 7}, Bangalore`,
-    rent: Math.floor(Math.random() * 50000) + 10000,
-    image_url: `https://images.unsplash.com/photo-${1522708323590 + i}?w=500&h=300&fit=crop`,
-    room_type: ['1BHK', '2BHK', '3BHK', 'Studio'][Math.floor(Math.random() * 4)],
-    tags: ['Furnished', 'Semi-furnished', 'Parking', 'WiFi'].filter(() => Math.random() > 0.5),
-    created_at: FIXED_TIMESTAMP
-  }))
-]
+// No mock data - only real database data will be used
 
 export function useFlatsData(options: UseFlatsDataOptions = {}): UseFlatsDataReturn {
   const {
@@ -238,29 +164,47 @@ export function useFlatsData(options: UseFlatsDataOptions = {}): UseFlatsDataRet
       let allData: Flat[] = []
       let count = 0
 
-      try {
-        // Try to fetch from Supabase
-        const { data: supabaseData, error: supabaseError, count: supabaseCount } = await supabase
-          .from('flats')
-          .select('*', { count: 'exact' })
-          .order('created_at', { ascending: false })
-          .abortSignal(signal)
+      // Fetch from Supabase database
+      const { data: supabaseData, error: supabaseError, count: supabaseCount } = await supabase
+        .from('listings')
+        .select(`
+          id,
+          title,
+          property_type,
+          city,
+          state,
+          country,
+          rent,
+          images,
+          highlights,
+          created_at
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .abortSignal(signal)
 
-        if (signal.aborted || lastRequestRef.current !== requestId) {
-          return
-        }
-
-        if (supabaseError || !supabaseData || supabaseData.length === 0) {
-          throw new Error('Supabase data not available')
-        }
-
-        allData = supabaseData
-        count = supabaseCount || supabaseData.length
-      } catch {
-        // Fallback to mock data
-        allData = mockFlats
-        count = mockFlats.length
+      if (signal.aborted || lastRequestRef.current !== requestId) {
+        return
       }
+
+      if (supabaseError) {
+        throw new Error(`Database error: ${supabaseError.message}`)
+      }
+
+      // Transform data to match Flat interface
+      allData = (supabaseData || []).map(listing => ({
+        id: listing.id,
+        title: listing.title,
+        location: `${listing.city}, ${listing.state}`,
+        rent: listing.rent,
+        image_url: listing.images && listing.images.length > 0 
+          ? listing.images.find((img: { is_primary?: boolean; url: string }) => img.is_primary)?.url || listing.images[0]?.url || ''
+          : '',
+        room_type: listing.property_type,
+        tags: listing.highlights || [],
+        created_at: listing.created_at
+      }))
+      
+      count = supabaseCount || allData.length
 
       // Cache the raw data
       flatsCache.set(cacheKey, {
@@ -298,18 +242,15 @@ export function useFlatsData(options: UseFlatsDataOptions = {}): UseFlatsDataRet
       }
 
       console.error('Error fetching flats:', err)
-      setError('Failed to load properties. Please try again.')
+      setError('Failed to load properties. Please check your connection and try again.')
       
-      // Fallback to mock data on error
-      const filteredData = applyFilters(mockFlats)
-      const paginatedData = filteredData.slice(0, pageSize)
-      
+      // No fallback data - show empty state
       if (reset || page === 0) {
-        setFlats(paginatedData)
+        setFlats([])
       }
       
-      setTotalCount(filteredData.length)
-      setHasMore(filteredData.length > pageSize)
+      setTotalCount(0)
+      setHasMore(false)
       setCurrentPage(0)
     } finally {
       if (lastRequestRef.current === requestId) {
