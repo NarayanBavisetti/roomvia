@@ -7,6 +7,8 @@ import Navbar from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import ImageGallery from '@/components/image-gallery'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import {
@@ -75,6 +77,8 @@ export default function ListingDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   
   const listingId = params?.id as string
 
@@ -139,6 +143,15 @@ export default function ListingDetailPage() {
       prev === listing.images.length - 1 ? 0 : prev + 1
     )
   }
+
+  // Autoplay for image slideshow
+  useEffect(() => {
+    if (!listing?.images || listing.images.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentImageIndex(prev => (prev + 1) % listing.images.length)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [listing?.images])
 
   const handleChatClick = () => {
     if (!user) {
@@ -256,69 +269,38 @@ export default function ListingDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Images and Details */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Image Gallery */}
-              <div className="relative">
-                <div className="aspect-video rounded-xl overflow-hidden bg-gray-200">
-                  {images.length > 0 && currentImage ? (
-                    <Image
-                      src={currentImage.url}
-                      alt={listing.title}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Home className="h-16 w-16 text-gray-400" />
-                    </div>
-                  )}
-                  
-                  {/* Image Navigation */}
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        onClick={handlePreviousImage}
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={handleNextImage}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                      
-                      {/* Image Counter */}
-                      <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                        {currentImageIndex + 1} / {images.length}
-                      </div>
-                    </>
-                  )}
-                </div>
+              {/* Collage Image Gallery */}
+              <ImageGallery images={images.map(img => img.url)} alt={listing.title} />
 
-                {/* Image Thumbnails */}
-                {images.length > 1 && (
-                  <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                    {images.map((image, index) => (
-                      <button
-                        key={image.public_id}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`relative flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                          index === currentImageIndex ? 'border-purple-500' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <Image
-                          src={image.url}
-                          alt={`${listing.title} ${index + 1}`}
-                          fill
-                          className="object-cover"
-                        />
-                      </button>
-                    ))}
+              {/* Lightbox */}
+              <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
+                <DialogContent className="bg-black/95 border-0 p-0 w-[95vw] h-[90vh] max-w-[95vw]">
+                  <div className="relative w-full h-full">
+                    {images.length > 0 && (
+                      <Image src={images[lightboxIndex]?.url || images[0].url} alt={listing.title} fill className="object-contain" />
+                    )}
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setLightboxIndex(prev => (prev - 1 + images.length) % images.length)}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 text-white p-3 rounded-full hover:bg-white/30"
+                        >
+                          <ChevronLeft className="h-6 w-6" />
+                        </button>
+                        <button
+                          onClick={() => setLightboxIndex(prev => (prev + 1) % images.length)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 text-white p-3 rounded-full hover:bg-white/30"
+                        >
+                          <ChevronRight className="h-6 w-6" />
+                        </button>
+                        <div className="absolute bottom-4 right-4 bg-white/10 text-white px-3 py-1 rounded-full text-sm">
+                          {lightboxIndex + 1} / {images.length}
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Property Title and Location */}
               <div>

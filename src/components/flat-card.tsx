@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapPin, Bookmark, MessageCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flat } from '@/lib/supabase'
@@ -18,6 +18,28 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  // Auto-advance slideshow if multiple images
+  useEffect(() => {
+    if (!flat.images || flat.images.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % flat.images!.length)
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [flat.images])
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!flat.images || flat.images.length <= 1) return
+    setCurrentIndex(prev => (prev - 1 + flat.images!.length) % flat.images!.length)
+  }
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!flat.images || flat.images.length <= 1) return
+    setCurrentIndex(prev => (prev + 1) % flat.images!.length)
+  }
   const { user } = useAuth()
   const { openChat } = useChat()
 
@@ -79,10 +101,14 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
       className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
       onClick={onClick}
     >
-      {/* Image container */}
+      {/* Image container with slideshow */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <Image
-          src={flat.image_url}
+          src={
+            flat.images && flat.images.length > 0
+              ? (flat.images[currentIndex]?.url || flat.image_url)
+              : flat.image_url
+          }
           alt={flat.title}
           fill
           className={`object-cover group-hover:scale-105 transition-transform duration-300 ${
@@ -91,6 +117,27 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           onLoad={() => setImageLoaded(true)}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
+
+        {/* Manual navigation arrows */}
+        {flat.images && flat.images.length > 1 && (
+          <>
+            <button
+              onClick={handlePrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+              aria-label="Previous image"
+            >
+              {/* Using a simple chevron */}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button
+              onClick={handleNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+              aria-label="Next image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </>
+        )}
         
         {/* Loading placeholder */}
         {!imageLoaded && (
@@ -107,6 +154,20 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         >
           <Bookmark className={`h-4 w-4 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />
         </button>
+
+        {/* Dots indicator */}
+        {flat.images && flat.images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {flat.images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx) }}
+                className={`h-1.5 w-1.5 rounded-full ${idx === currentIndex ? 'bg-white' : 'bg-white/60'}`}
+                aria-label={`Go to image ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Room type badge */}
         <div className="absolute top-4 left-4">

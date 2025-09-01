@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { Upload, X, Star, StarOff, Image as ImageIcon } from 'lucide-react'
@@ -33,6 +33,11 @@ export default function ImageUpload({
   const [uploadingImages, setUploadingImages] = useState<UploadingImage[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Keep a ref of latest images to avoid stale closures during batch uploads
+  const imagesRef = useRef<CloudinaryImage[]>(images)
+  useEffect(() => {
+    imagesRef.current = images
+  }, [images])
 
   const uploadFile = useCallback(async (file: File, uploadingIndex: number) => {
     const formData = new FormData()
@@ -88,8 +93,8 @@ export default function ImageUpload({
         xhr.send(formData)
       })
 
-      // Set as primary if it's the first image
-      const isFirstImage = images.length === 0
+      // Set as primary if it's the first image (use ref for latest value)
+      const isFirstImage = imagesRef.current.length === 0
       const imageToAdd: CloudinaryImage = {
         ...response,
         is_primary: isFirstImage
@@ -97,13 +102,13 @@ export default function ImageUpload({
 
       // Add to images and remove from uploading
       setUploadingImages(prev => prev.filter((_, idx) => idx !== uploadingIndex))
-      onImagesChange([...images, imageToAdd])
+      onImagesChange([...(imagesRef.current || []), imageToAdd])
 
     } catch (error) {
       console.error('Upload error:', error)
       throw error
     }
-  }, [listingId, images, onImagesChange])
+  }, [listingId, onImagesChange])
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (disabled) return
