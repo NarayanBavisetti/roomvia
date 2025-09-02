@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { ChevronDown, X, SlidersHorizontal, Home, Building2 } from 'lucide-react'
+import { ChevronDown, X, SlidersHorizontal, Home, Building2, Utensils, Cigarette, CigaretteOff, Shield, Waves, Dumbbell, Snowflake, Bath, Archive, Package, Fan, Wifi, Car, Zap, Droplets, ShirtIcon } from 'lucide-react'
 
 interface FilterOption {
   id: string
@@ -26,18 +26,82 @@ const filters: FilterOption[] = [
     hasCustomDropdown: true
   },
   {
+    id: 'bhk',
+    label: 'BHK',
+    type: 'select',
+    options: ['1 BHK', '2 BHK', '3 BHK', '4 BHK', 'Full Flat']
+  },
+  {
+    id: 'broker',
+    label: 'Broker',
+    type: 'select',
+    options: ['No Broker', 'Broker']
+  },
+  {
     id: 'gender',
     label: 'Gender',
     type: 'select',
     options: ['Male', 'Female', 'Unisex']
-  },
-  {
-    id: 'preferred_by',
-    label: 'Preferred By',
-    type: 'select',
-    options: ['Working Professionals', 'Students', 'Family', 'Anyone']
   }
 ]
+
+// More filters for the expanded dropdown
+const moreFilters = {
+  occupancy: {
+    label: 'Occupancy',
+    options: [
+      { id: 'single', label: 'Single Occupancy' },
+      { id: 'double', label: 'Double Occupancy' },
+      { id: 'triple', label: 'Triple Occupancy' },
+      { id: 'quadruple', label: 'Quadruple Occupancy' },
+      { id: 'quintuple', label: 'Quintuple Occupancy' },
+      { id: 'dorm', label: 'Dorm' }
+    ]
+  },
+  amenities: {
+    label: 'Amenities',
+    options: [
+      { id: 'attached_balcony', label: 'Attached Balcony' },
+      { id: 'air_conditioning', label: 'Air Conditioning' },
+      { id: 'attached_washroom', label: 'Attached Washroom' },
+      { id: 'storage_shelf', label: 'Storage Shelf' },
+      { id: 'spacious_cupboard', label: 'Spacious Cupboard' },
+      { id: 'desert_cooler', label: 'Desert Cooler' },
+      { id: 'wifi', label: 'WiFi' },
+      { id: 'laundry', label: 'Laundry' },
+      { id: 'parking', label: 'Parking' },
+      { id: 'security', label: '24/7 Security' },
+      { id: 'power_backup', label: 'Power Backup' },
+      { id: 'water_supply', label: 'Water Supply' },
+      { id: 'gym', label: 'Gym' },
+      { id: 'swimming_pool', label: 'Swimming Pool' }
+    ]
+  },
+  food: {
+    label: 'Food Preferences',
+    options: [
+      { id: 'vegetarian', label: 'Vegetarian' },
+      { id: 'non_vegetarian', label: 'Non-Vegetarian' },
+      { id: 'both', label: 'Both' }
+    ]
+  },
+  lifestyle: {
+    label: 'Lifestyle Preferences',
+    options: [
+      { id: 'smoker', label: 'Smoker' },
+      { id: 'non_smoker', label: 'Non-Smoker' },
+      { id: 'no_preference', label: 'No Preference' }
+    ]
+  },
+  property_type: {
+    label: 'Property Type',
+    options: [
+      { id: 'gated_community', label: 'Gated Community' },
+      { id: 'independent_house', label: 'Independent House' },
+      { id: 'apartment', label: 'Apartment' }
+    ]
+  }
+}
 
 const sortOptions = [
   'Distance',
@@ -56,9 +120,10 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [barHeight, setBarHeight] = useState(0)
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([6899, 28699])
+  const [budgetRange, setBudgetRange] = useState<[number, number]>([6899, 200000])
   const [activeTab, setActiveTab] = useState<'pg_hostels' | 'flats'>('pg_hostels')
   const [selectedSort, setSelectedSort] = useState('Distance')
+  const [moreFiltersState, setMoreFiltersState] = useState<Record<string, string[]>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
   const originalPosition = useRef<number>(0)
@@ -166,12 +231,45 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
   const clearAllFilters = () => {
     setActiveFilters({})
-    setBudgetRange([6899, 28699])
+    setBudgetRange([6899, 200000])
+    setMoreFiltersState({})
     onFiltersChange?.({})
   }
 
   const getActiveFilterCount = () => {
-    return Object.values(activeFilters).reduce((acc, filters) => acc + filters.length, 0)
+    const mainFiltersCount = Object.values(activeFilters).reduce((acc, filters) => acc + filters.length, 0)
+    const moreFiltersCount = Object.values(moreFiltersState).reduce((acc, filters) => acc + filters.length, 0)
+    return mainFiltersCount + moreFiltersCount
+  }
+
+  const toggleMoreFilter = (category: string, value: string) => {
+    const newMoreFilters = { ...moreFiltersState }
+    if (!newMoreFilters[category]) {
+      newMoreFilters[category] = []
+    }
+    
+    if (category === 'amenities') {
+      // Multi-select for amenities
+      if (newMoreFilters[category].includes(value)) {
+        newMoreFilters[category] = newMoreFilters[category].filter(v => v !== value)
+        if (newMoreFilters[category].length === 0) {
+          delete newMoreFilters[category]
+        }
+      } else {
+        newMoreFilters[category] = [...newMoreFilters[category], value]
+      }
+    } else {
+      // Single select for other categories
+      if (newMoreFilters[category].includes(value)) {
+        delete newMoreFilters[category]
+      } else {
+        newMoreFilters[category] = [value]
+      }
+    }
+    
+    setMoreFiltersState(newMoreFilters)
+    // Combine with main filters for callback
+    onFiltersChange?.({ ...activeFilters, ...newMoreFilters })
   }
 
   const BudgetRangeSlider = () => {
@@ -186,7 +284,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
     const getPercentage = (value: number) => {
       const min = 6899
-      const max = 28699
+      const max = 200000
       return ((value - min) / (max - min)) * 100
     }
 
@@ -200,8 +298,8 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       if (!isDragging || !sliderRef.current) return
       
       const rect = sliderRef.current.getBoundingClientRect()
-      const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-      const value = Math.round(6899 + (28699 - 6899) * percentage)
+              const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+        const value = Math.round(6899 + (200000 - 6899) * percentage)
       
       setLocalRange(prev => {
         if (isDragging === 'min') {
@@ -245,11 +343,11 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
               value={`₹ ${localRange[0].toLocaleString()}`}
               onChange={(e) => {
                 const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 6899
-                const newMin = Math.max(6899, Math.min(value, localRange[1] - 100))
-                setLocalRange([newMin, localRange[1]])
+                                 const newMin = Math.max(6899, Math.min(value, localRange[1] - 1000))
+                 setLocalRange([newMin, localRange[1]])
               }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-teal-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-purple-500"
             />
           </div>
           <div className="text-gray-400 pt-6">—</div>
@@ -260,11 +358,11 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
               value={`₹ ${localRange[1].toLocaleString()}`}
               onChange={(e) => {
                 const value = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 28699
-                const newMax = Math.min(28699, Math.max(value, localRange[0] + 100))
-                setLocalRange([localRange[0], newMax])
+                                 const newMax = Math.min(200000, Math.max(value, localRange[0] + 1000))
+                 setLocalRange([localRange[0], newMax])
               }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-teal-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:border-purple-500"
             />
           </div>
         </div>
@@ -275,54 +373,54 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
             ref={sliderRef}
             className="relative h-2 bg-gray-200 rounded-full cursor-pointer"
           >
-            {/* Active range */}
-            <div
-              className="absolute h-2 bg-teal-500 rounded-full"
-              style={{
-                left: `${minPercent}%`,
-                width: `${maxPercent - minPercent}%`
-              }}
-            />
-            
-            {/* Min handle */}
-            <div
-              className={`absolute w-4 h-4 bg-teal-500 border-2 border-white rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 shadow-md ${
-                isDragging === 'min' ? 'scale-110' : ''
-              }`}
-              style={{ left: `${minPercent}%`, top: '50%' }}
-              onMouseDown={handleMouseDown('min')}
-            />
-            
-            {/* Max handle */}
-            <div
-              className={`absolute w-4 h-4 bg-teal-500 border-2 border-white rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 shadow-md ${
-                isDragging === 'max' ? 'scale-110' : ''
-              }`}
-              style={{ left: `${maxPercent}%`, top: '50%' }}
-              onMouseDown={handleMouseDown('max')}
-            />
+                         {/* Active range */}
+             <div
+               className="absolute h-2 bg-purple-500 rounded-full"
+               style={{
+                 left: `${minPercent}%`,
+                 width: `${maxPercent - minPercent}%`
+               }}
+             />
+             
+             {/* Min handle */}
+             <div
+               className={`absolute w-4 h-4 bg-purple-500 border-2 border-white rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 shadow-md ${
+                 isDragging === 'min' ? 'scale-110' : ''
+               }`}
+               style={{ left: `${minPercent}%`, top: '50%' }}
+               onMouseDown={handleMouseDown('min')}
+             />
+             
+             {/* Max handle */}
+             <div
+               className={`absolute w-4 h-4 bg-purple-500 border-2 border-white rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 shadow-md ${
+                 isDragging === 'max' ? 'scale-110' : ''
+               }`}
+               style={{ left: `${maxPercent}%`, top: '50%' }}
+               onMouseDown={handleMouseDown('max')}
+             />
           </div>
         </div>
 
         {/* Action buttons */}
         <div className="flex justify-between pt-2">
-          <button
-            onClick={() => {
-              setLocalRange([6899, 28699])
-              handleBudgetChange([6899, 28699])
-              setOpenDropdown(null)
-            }}
-            className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            Clear
-          </button>
-          <button
-            onClick={() => {
-              handleBudgetChange(localRange)
-              setOpenDropdown(null)
-            }}
-            className="px-4 py-2 bg-teal-500 text-white text-sm rounded hover:bg-teal-600 transition-colors"
-          >
+                     <button
+             onClick={() => {
+               setLocalRange([6899, 200000])
+               handleBudgetChange([6899, 200000])
+               setOpenDropdown(null)
+             }}
+             className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
+           >
+             Clear
+           </button>
+           <button
+             onClick={() => {
+               handleBudgetChange(localRange)
+               setOpenDropdown(null)
+             }}
+             className="px-4 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition-colors"
+           >
             Save
           </button>
         </div>
@@ -366,186 +464,223 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
         >
           <div className="bg-white">
             {/* Top level tabs - always visible */}
-            <div className={`flex items-center justify-between transition-all duration-300 ease-out ${
-              isSticky ? 'mb-2' : 'mb-4'
-            }`}>
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-                <button
-                  onClick={() => setActiveTab('pg_hostels')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeTab === 'pg_hostels'
-                      ? 'bg-teal-500 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Home className="h-4 w-4" />
-                  PG/Hostels
-                </button>
-                <button
-                  onClick={() => setActiveTab('flats')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeTab === 'flats'
-                      ? 'bg-teal-500 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Building2 className="h-4 w-4" />
-                  Flats
-                </button>
-              </div>
-
-              {/* Sort dropdown */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-all"
-                  >
-                    Sort By: <span className="font-medium text-teal-600">{selectedSort}</span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${
-                      openDropdown === 'sort' ? 'rotate-180' : ''
-                    }`} />
-                  </button>
-
-                  {openDropdown === 'sort' && (
-                    <div className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] min-w-[180px]">
-                      <div className="p-2">
-                        {sortOptions.map((option) => (
-                          <button
-                            key={option}
-                            onClick={() => {
-                              setSelectedSort(option)
-                              setOpenDropdown(null)
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                              selectedSort === option
-                                ? 'bg-teal-50 text-teal-700'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* Main filters row */}
             <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out ${
               isSticky ? 'mb-0' : 'mb-4'
             }`}>
               <div className="flex items-center gap-3 flex-1">
-                {filters.map((filter) => (
-                  <div key={filter.id} className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenDropdown(openDropdown === filter.id ? null : filter.id)
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:border-gray-300 transition-all bg-white"
-                    >
-                      {filter.label}
+              {filters.map((filter) => (
+                <div key={filter.id} className="relative">
+                                         <button
+                       onClick={(e) => {
+                         e.stopPropagation()
+                         setOpenDropdown(openDropdown === filter.id ? null : filter.id)
+                       }}
+                       className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-full transition-all duration-200 font-medium ${
+                         activeFilters[filter.id]?.length 
+                           ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                           : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                       }`}
+                     >
+                    {filter.label}
                       <ChevronDown className={`h-4 w-4 transition-transform ${
-                        openDropdown === filter.id ? 'rotate-180' : ''
-                      }`} />
+                          openDropdown === filter.id ? 'rotate-180' : ''
+                        }`} />
                     </button>
 
                     {/* Dropdown menu */}
                     {openDropdown === filter.id && (
-                      <div 
-                        className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-xl z-[100]"
-                        style={{ 
-                          minWidth: filter.id === 'budget' ? '320px' : '180px'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {filter.hasCustomDropdown && filter.id === 'budget' ? (
-                          <BudgetRangeSlider />
-                        ) : (
-                          <div className="p-2 max-h-60 overflow-y-auto">
-                            {filter.options?.map((option) => (
-                              <button
-                                key={option}
-                                onClick={() => toggleFilter(filter.id, option)}
-                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                                  activeFilters[filter.id]?.includes(option)
-                                    ? 'bg-teal-50 text-teal-700'
-                                    : 'hover:bg-gray-50'
-                                }`}
-                              >
-                                <span className="flex items-center gap-2">
-                                  {activeFilters[filter.id]?.includes(option) && (
-                                    <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
-                                  )}
-                                  {option}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                                             <div 
+                         className="absolute top-full mt-2 left-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-[100]"
+                         style={{ 
+                           minWidth: filter.id === 'budget' ? '320px' : '280px'
+                         }}
+                         onClick={(e) => e.stopPropagation()}
+                       >
+                                                 {filter.hasCustomDropdown && filter.id === 'budget' ? (
+                           <BudgetRangeSlider />
+                         ) : (
+                           <div className="p-4 max-w-xs">
+                             <div className="flex flex-wrap gap-2">
+                               {filter.options?.map((option) => (
+                                 <button
+                                   key={option}
+                                   onClick={() => toggleFilter(filter.id, option)}
+                                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+                                     activeFilters[filter.id]?.includes(option)
+                                       ? 'bg-purple-500 text-white border-purple-500 shadow-md transform scale-105'
+                                       : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                                   }`}
+                                 >
+                                   {option}
+                                 </button>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                    </div>
+                  )}
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setOpenDropdown(openDropdown === 'more' ? null : 'more')}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-all"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  More Filters
-                </button>
+                             <div className="flex items-center gap-3">
+                 <div className="relative">
+                   <button
+                     onClick={() => setOpenDropdown(openDropdown === 'more' ? null : 'more')}
+                     className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-full transition-all duration-200 font-medium ${
+                       Object.keys(moreFiltersState).length > 0
+                         ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                         : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                     }`}
+                   >
+                     <SlidersHorizontal className="h-4 w-4" />
+                     More Filters
+                     {Object.keys(moreFiltersState).length > 0 && (
+                       <span className="ml-1 bg-white text-purple-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                         {Object.values(moreFiltersState).reduce((acc, filters) => acc + filters.length, 0)}
+                       </span>
+                     )}
+                     <ChevronDown className={`h-4 w-4 transition-transform ${
+                       openDropdown === 'more' ? 'rotate-180' : ''
+                     }`} />
+                   </button>
 
-                {getActiveFilterCount() > 0 && !isSticky && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-sm text-gray-500 hover:text-red-600 underline transition-colors"
-                  >
-                    Clear all filters
-                  </button>
-                )}
-              </div>
+                                      {openDropdown === 'more' && (
+                     <div 
+                       className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-2xl shadow-2xl z-[100] w-[600px] max-h-[600px] overflow-y-auto"
+                       onClick={(e) => e.stopPropagation()}
+                     >
+                       <div className="p-8">
+                         <div className="flex items-center justify-between mb-8">
+                           <h3 className="text-xl font-semibold text-gray-900">Filters</h3>
+                           <button
+                             onClick={() => setOpenDropdown(null)}
+                             className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+                           >
+                             <X className="h-5 w-5 text-gray-400" />
+                           </button>
+                         </div>
+                         
+                         <div className="space-y-10">
+                           {Object.entries(moreFilters).map(([categoryKey, category]) => (
+                             <div key={categoryKey} className="space-y-5">
+                               <h4 className="text-lg font-medium text-gray-900 mb-4">{category.label}</h4>
+                               
+                               <div className="flex flex-wrap gap-3">
+                                 {category.options.map((option) => {
+                                   const isSelected = moreFiltersState[categoryKey]?.includes(option.id) || false
+                                   return (
+                                     <button
+                                       key={option.id}
+                                       onClick={() => toggleMoreFilter(categoryKey, option.id)}
+                                       className={`px-5 py-3 rounded-full text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
+                                         isSelected
+                                           ? 'bg-purple-500 text-white border-purple-500 shadow-lg transform scale-105'
+                                           : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:shadow-md'
+                                       }`}
+                                     >
+                                       {option.label}
+                                     </button>
+                                   )
+                                 })}
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                         
+                         {/* Action buttons */}
+                         <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-100">
+                           <button
+                             onClick={() => {
+                               setMoreFiltersState({})
+                               onFiltersChange?.(activeFilters)
+                             }}
+                             className="px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
+                           >
+                             Clear All
+                           </button>
+                           <button
+                             onClick={() => setOpenDropdown(null)}
+                             className="px-8 py-3 bg-purple-500 text-white text-sm font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                           >
+                             Apply Filters
+                           </button>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+        </div>
+
+                 {getActiveFilterCount() > 0 && !isSticky && (
+                   <button
+                     onClick={clearAllFilters}
+                     className="text-sm text-gray-500 hover:text-red-600 underline transition-colors"
+                   >
+                     Clear all filters
+                   </button>
+                 )}
+               </div>
             </div>
 
-            {/* Active filter chips by category - hidden when sticky */}
-            {getActiveFilterCount() > 0 && !isSticky && (
-              <div className="space-y-3">
-                {Object.entries(getActiveFiltersByCategory()).map(([category, data]) => (
-                  <div key={category} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-gray-600 font-medium min-w-max">{category}</span>
-                    {data.items.map((item, index) => (
-                      <Badge
-                        key={`${category}-${item}-${index}`}
-                        variant="secondary"
-                        className="bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors"
-                      >
-                        {item}
-                        <button
-                          onClick={() => {
-                            const filterId = filters.find(f => f.label === category)?.id
-                            if (filterId) {
-                              if (filterId === 'budget') {
-                                setBudgetRange([6899, 28699])
-                              }
-                              toggleFilter(filterId, item === 'Allowed' ? 'true' : item)
-                            }
-                          }}
-                          className="ml-1 hover:bg-teal-200 rounded-full p-0.5 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                ))}
-              </div>
+                         {/* Active filter chips - all in one line - hidden when sticky */}
+             {getActiveFilterCount() > 0 && !isSticky && (
+               <div className="flex flex-wrap items-center gap-2">
+                 {/* Main filters */}
+            {Object.entries(activeFilters).map(([filterId, values]) => 
+                   values.map((value) => {
+                     const filter = filters.find(f => f.id === filterId)
+                     return (
+                  <Badge
+                    key={`${filterId}-${value}`}
+                    variant="secondary"
+                         className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                       >
+                         <span className="text-xs text-gray-500 mr-1">{filter?.label}:</span>
+                         {value === 'true' ? 'Allowed' : value}
+                         <button
+                           onClick={() => {
+                             if (filterId === 'budget') {
+                               setBudgetRange([6899, 28699])
+                             }
+                             toggleFilter(filterId, value)
+                           }}
+                           className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                         >
+                           <X className="h-3 w-3" />
+                         </button>
+                       </Badge>
+                     )
+                   })
+                 )}
+                 
+                 {/* More filters */}
+                 {Object.entries(moreFiltersState).map(([categoryKey, values]) => 
+                   values.map((value) => {
+                     const category = moreFilters[categoryKey as keyof typeof moreFilters]
+                     const option = category?.options.find(opt => opt.id === value)
+                     return (
+                       <Badge
+                         key={`more-${categoryKey}-${value}`}
+                         variant="secondary"
+                         className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                       >
+                         <span className="text-xs text-gray-500 mr-1">{category?.label}:</span>
+                         {option?.label || value}
+                    <button
+                           onClick={() => toggleMoreFilter(categoryKey, value)}
+                           className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                </Badge>
+                     )
+                   })
             )}
           </div>
+          )}
+        </div>
         </div>
       </div>
       
@@ -556,7 +691,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
           height: isSticky ? `${barHeight}px` : '0px'
         }}
       />
-      
+
       {/* Click outside to close dropdown */}
       {openDropdown && (
         <div
