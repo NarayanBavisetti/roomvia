@@ -13,7 +13,7 @@ export default function FlatCardSkeleton() {
         </div>
         
         {/* Price skeleton */}
-        <div className="h-6 bg-gray-200 rounded w-1/3" />
+        <div className="h-5 bg-gray-200 rounded w-1/3" />
         
         {/* Tags skeleton */}
         <div className="flex gap-2">
@@ -24,8 +24,8 @@ export default function FlatCardSkeleton() {
         
         {/* Buttons skeleton */}
         <div className="flex gap-2 pt-2">
-          <div className="h-9 bg-gray-200 rounded flex-1" />
-          <div className="h-9 bg-gray-200 rounded flex-1" />
+          <div className="h-8 bg-gray-200 rounded flex-1" />
+          <div className="h-8 bg-gray-200 rounded flex-1" />
         </div>
       </div>
     </div>

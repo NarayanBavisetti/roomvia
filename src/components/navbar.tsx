@@ -19,12 +19,13 @@ import OTPModal from '@/components/auth/otp-modal'
 import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
+  // const [isScrolled, setIsScrolled] = useState(false) // Removed - not needed since navbar scrolls naturally
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showOTPModal, setShowOTPModal] = useState(false)
   const [otpContact, setOtpContact] = useState('')
   const [otpType, setOtpType] = useState<'email' | 'sms'>('email')
+  // const [hideForFilters, setHideForFilters] = useState(false) // Removed - letting navbar scroll naturally
 
   const { user, loading, signOut } = useAuth()
   const { toggleSidebar, chatList } = useChat()
@@ -36,21 +37,31 @@ export default function Navbar() {
   const [isBroker, setIsBroker] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-
-    // Only add scroll listener on client side
+    // Only add login modal listener on client side
     if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', handleScroll)
       const openLogin = () => setShowLoginModal(true)
       window.addEventListener('open-login-modal', openLogin as EventListener)
       return () => {
-        window.removeEventListener('scroll', handleScroll)
         window.removeEventListener('open-login-modal', openLogin as EventListener)
       }
     }
   }, [])
+
+  // Remove the navbar hiding behavior - let it scroll naturally
+  // useEffect(() => {
+  //   const onSticky = (e: any) => {
+  //     try {
+  //       const sticky = Boolean(e?.detail?.sticky)
+  //       setHideForFilters(sticky)
+  //     } catch {
+  //       // no-op
+  //     }
+  //   }
+  //   if (typeof window !== 'undefined') {
+  //     window.addEventListener('filters-sticky-change', onSticky as EventListener)
+  //     return () => window.removeEventListener('filters-sticky-change', onSticky as EventListener)
+  //   }
+  // }, [])
 
   // Check if current user is a broker to show Analytics tab
   useEffect(() => {
@@ -98,9 +109,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white shadow-md' : 'bg-white/95 backdrop-blur-sm'
-    }`}>
+    <nav className="w-full bg-white/95 backdrop-blur-sm  z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}

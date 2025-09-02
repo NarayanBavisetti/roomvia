@@ -98,7 +98,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 
   return (
     <div 
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
+      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
       onClick={onClick}
     >
       {/* Image container with slideshow */}
@@ -193,33 +193,33 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4">
         {/* Title and location */}
-        <div className="mb-4">
-          <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-1 group-hover:text-purple-500 transition-colors">
+        <div className="mb-3">
+          <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1.5 line-clamp-1 group-hover:text-purple-500 transition-colors">
             {flat.title}
           </h3>
-          <div className="flex items-center text-gray-500 text-sm">
-            <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+          <div className="flex items-center text-gray-500 text-xs md:text-sm">
+            <MapPin className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
             <span className="line-clamp-1">{flat.location}</span>
           </div>
         </div>
 
         {/* Rent */}
-        <div className="mb-4">
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="mb-3">
+          <div className="text-xl md:text-2xl font-bold text-gray-900">
             ₹{flat.rent.toLocaleString('en-IN')}
-            <span className="text-sm font-normal text-gray-500 ml-1">/month</span>
+            <span className="text-xs md:text-sm font-normal text-gray-500 ml-1">/month</span>
           </div>
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {flat.tags.slice(0, 3).map((tag, index) => (
             <Badge 
               key={index}
               variant="outline" 
-              className="text-xs px-3 py-1 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 rounded-full"
+              className="text-[11px] px-2.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 rounded-full"
             >
               {tag}
             </Badge>
@@ -227,7 +227,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           {flat.tags.length > 3 && (
             <Badge 
               variant="outline" 
-              className="text-xs px-3 py-1 bg-gray-50 border-gray-200 text-gray-600 rounded-full"
+              className="text-[11px] px-2.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600 rounded-full"
             >
               +{flat.tags.length - 3}
             </Badge>
@@ -235,23 +235,23 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <Button
             onClick={handleMessageOwner}
             variant="outline"
             size="sm"
-            className="flex-1 border-purple-200 text-purple-500 hover:bg-purple-50 hover:border-purple-500 transition-colors py-2.5 rounded-xl"
+            className="flex-1 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-500 transition-colors py-2 rounded-lg"
           >
-            <MessageCircle className="h-4 w-4 mr-2" />
+            <MessageCircle className="h-3.5 w-3.5 mr-2" />
             Chat
           </Button>
           <Button
             onClick={handleGetDirections}
             variant="secondary"
             size="sm"
-            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200 py-2.5 rounded-xl"
+            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200 py-2 rounded-lg"
           >
-            <MapPin className="h-4 w-4 mr-2" />
+            <MapPin className="h-3.5 w-3.5 mr-2" />
             Directions
           </Button>
         </div>

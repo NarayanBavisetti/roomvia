@@ -14,10 +14,12 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
 import type { State, Area } from '@/lib/api'
 
+
 // All data now comes from the database through the useFlatsData hook
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [filtersSticky, setFiltersSticky] = useState(false)
   const [searchLocation, setSearchLocation] = useState('')
   const [searchArea, setSearchArea] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
@@ -27,6 +29,21 @@ export default function Home() {
   // Set mounted state
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Listen for filter bar sticky state to collapse hero
+  useEffect(() => {
+    const onSticky = (e: CustomEvent) => {
+      try {
+        setFiltersSticky(Boolean(e?.detail?.sticky))
+      } catch {
+        // no-op
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('filters-sticky-change', onSticky as EventListener)
+      return () => window.removeEventListener('filters-sticky-change', onSticky as EventListener)
+    }
   }, [])
 
   // Use the enhanced data fetching hook
@@ -109,20 +126,18 @@ export default function Home() {
       </div>
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative bg-transparent">
+      {/* Hero Section (collapses when filters stick) */}
+      <section className={`relative bg-transparent transition-all duration-300 ease-out ${filtersSticky ? 'opacity-0 -translate-y-3 h-0 overflow-hidden m-0 p-0 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <SearchBar onSearch={handleSearch} />
       </section>
 
       {/* Filter Bar */}
-      <div className="relative">
-        <FilterBar onFiltersChange={handleFiltersChange} />
-      </div>
+      <FilterBar onFiltersChange={handleFiltersChange} />
 
       {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Results count and refresh button */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-white/20">
           <div>
             <p className="text-lg font-medium text-gray-900">
               {loading && flats.length === 0 ? (
@@ -159,7 +174,7 @@ export default function Home() {
         </div>
 
         {/* Cards + Map */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
           <div className="lg:col-span-2">
             {flats.length > 0 ? (
               <>
