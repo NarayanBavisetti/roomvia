@@ -99,7 +99,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 relative overflow-x-hidden" suppressHydrationWarning>
+    <div className="min-h-screen bg-white relative overflow-x-hidden" suppressHydrationWarning>
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -right-20 w-96 h-96 bg-purple-100/20 rounded-full blur-3xl"></div>
@@ -110,7 +110,7 @@ export default function Home() {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative bg-white/80 backdrop-blur-sm">
+      <section className="relative bg-transparent">
         <SearchBar onSearch={handleSearch} />
       </section>
 

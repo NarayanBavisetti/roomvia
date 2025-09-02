@@ -75,15 +75,15 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       </div>
       
       {/* Clean Search Bar */}
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-full shadow-lg border border-gray-200 p-2">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-full shadow-md border border-gray-200 p-1.5">
           <div className="flex items-center gap-1">
             {/* State Section */}
             <div className="flex-1">
               <Popover open={stateOpen} onOpenChange={(open) => setStateOpen(open)}>
                 <PopoverTrigger asChild>
                   <div
-                    className="h-12 w-full rounded-full hover:bg-gray-50 border-0 px-4 cursor-text flex items-center"
+                    className="h-11 w-full rounded-full hover:bg-gray-50 border-0 px-3.5 cursor-text flex items-center"
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement
                       if (target.tagName !== 'INPUT') {
@@ -149,14 +149,14 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
             </div>
 
             {/* Separator */}
-            <div className="h-6 w-px bg-gray-300"></div>
+            <div className="h-5 w-px bg-gray-300"></div>
 
             {/* Area Section */}
             <div className="flex-1">
               <Popover open={areaOpen} onOpenChange={(open) => setAreaOpen(open)}>
                 <PopoverTrigger asChild>
                   <div
-                    className="h-12 w-full rounded-full hover:bg-gray-50 border-0 px-4 cursor-text flex items-center"
+                    className="h-11 w-full rounded-full hover:bg-gray-50 border-0 px-3.5 cursor-text flex items-center"
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement
                       if (target.tagName !== 'INPUT') {
@@ -231,7 +231,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               onClick={handleSearch}
               disabled={!selectedState || !selectedArea}
               size="icon"
-              className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm hover:from-purple-600 hover:to-purple-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ml-1"
+              className="h-11 w-11 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm hover:from-purple-600 hover:to-purple-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ml-1"
             >
               <Search className="h-5 w-5 text-primary-foreground" />
             </Button>
