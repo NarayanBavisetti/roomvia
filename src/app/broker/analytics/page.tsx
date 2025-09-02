@@ -1,541 +1,522 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { analyticsService } from '@/lib/analytics'
-import { openAIService } from '@/lib/openai'
-import type { BrokerInsights, AnalyticsData } from '@/lib/openai'
+import { useRouter } from 'next/navigation'
 import Navbar from '@/components/navbar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { 
   BarChart3, 
   TrendingUp, 
+  Users, 
   Eye, 
-  MessageSquare, 
+  MessageCircle, 
+  Bookmark, 
+  Phone, 
+  Calendar,
   MapPin,
-  Target,
-  Lightbulb,
-  RefreshCw,
-  Home,
-  Search,
-  Sparkles
+  Crown,
+  Loader2,
+  Download,
+  RefreshCw
 } from 'lucide-react'
+import { fetchAnalytics, type MarketData, type BrokerPerformance, formatBudget, calculateEngagementRate } from '@/lib/analytics-extraction'
+import { showToast } from '@/lib/toast'
 
-interface PerformanceMetrics {
-  totalViews: number
-  totalInquiries: number
-  totalListings: number
-  conversionRate: number
-  avgViewsPerListing: number
-  avgInquiriesPerListing: number
-}
+const CITIES = [
+  'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'
+]
 
-interface ListingPerformance {
-  listingId: string
-  title: string
-  location: string
-  rent: number
-  propertyType: string
-  views: number
-  saves: number
-  inquiries: number
-  phoneReveals: number
-  avgTimeSpent: number
-  conversionRate: number
-}
+const TIME_PERIODS = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 14, label: 'Last 14 days' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 3 months' }
+]
 
 export default function BrokerAnalyticsPage() {
   const { user, loading } = useAuth()
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null)
-  const [listingPerformance, setListingPerformance] = useState<ListingPerformance[]>([])
-  const [searchTrends, setSearchTrends] = useState<import('@/lib/analytics').SearchTrends | null>(null)
-  const [marketTrends, setMarketTrends] = useState<import('@/lib/analytics').MarketTrend[]>([])
-  const [aiInsights, setAiInsights] = useState<BrokerInsights | null>(null)
-  const [isLoadingInsights, setIsLoadingInsights] = useState(false)
-  const [selectedTimeRange, setSelectedTimeRange] = useState<7 | 30 | 90>(30)
-  const [isLoadingData, setIsLoadingData] = useState(true)
+  const router = useRouter()
+  const [selectedCity, setSelectedCity] = useState('Bangalore')
+  const [selectedPeriod, setSelectedPeriod] = useState(7)
+  const [marketData, setMarketData] = useState<MarketData | null>(null)
+  const [performanceData, setPerformanceData] = useState<BrokerPerformance | null>(null)
+  const [aiSummary, setAiSummary] = useState('')
+  const [loadingMarket, setLoadingMarket] = useState(false)
+  const [loadingPerformance, setLoadingPerformance] = useState(false)
+  const [isBroker, setIsBroker] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
 
-  const loadAnalyticsData = useCallback(async () => {
-    if (!user) return
-
-    setIsLoadingData(true)
-    try {
-      // Load basic analytics
-      const analytics = await analyticsService.getBrokerAnalytics(user.id, selectedTimeRange)
-      const listingData = await analyticsService.getListingAnalytics(user.id, selectedTimeRange)
-      const trends = await analyticsService.getSearchTrends(selectedTimeRange)
-      const market = await analyticsService.getMarketTrends()
-
-      if (analytics?.performance) {
-        const listingCount = Math.max(listingData.length || analytics.performance.totalListings || 0, 1)
-        setPerformanceMetrics({
-          totalViews: analytics.performance.totalViews,
-          totalInquiries: analytics.performance.totalInquiries,
-          totalListings: analytics.performance.totalListings,
-          conversionRate: analytics.performance.conversionRate,
-          avgViewsPerListing: analytics.performance.totalViews / listingCount,
-          avgInquiriesPerListing: analytics.performance.totalInquiries / listingCount
-        })
-      }
-
-      // Process listing data
-      const processedListings = listingData.map((item) => ({
-        listingId: item.listing_id,
-        title: item.listing?.title || 'Unknown Listing',
-        location: item.listing?.location || 'Unknown Location',
-        rent: item.listing?.rent || 0,
-        propertyType: item.listing?.property_type || 'Unknown',
-        views: item.views || 0,
-        saves: item.saves || 0,
-        inquiries: item.inquiries || 0,
-        phoneReveals: item.phone_reveals || 0,
-        avgTimeSpent: 0, // Would need to calculate from user_behavior data
-        conversionRate: item.views > 0 ? (item.inquiries / item.views) * 100 : 0
-      }))
-
-      setListingPerformance(processedListings)
-      setSearchTrends(trends)
-      setMarketTrends(market)
-    } catch (error) {
-      console.error('Failed to load analytics data:', error)
-    } finally {
-      setIsLoadingData(false)
-    }
-  }, [user, selectedTimeRange])
-
+  // Check broker access
   useEffect(() => {
-    if (user) {
-      loadAnalyticsData()
-    }
-  }, [user, selectedTimeRange, loadAnalyticsData])
+    const checkBrokerAccess = async () => {
+      if (!user) return
+      
+      try {
+        const { supabase } = await import('@/lib/supabase')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .single()
 
-  const generateAIInsights = async () => {
-    if (!user || !performanceMetrics) return
-
-    setIsLoadingInsights(true)
-    try {
-      // Prepare analytics data for AI processing
-      const analyticsData: AnalyticsData = {
-        searchPatterns: {
-          keywords: searchTrends?.keywords || [],
-          locations: searchTrends?.locations || [],
-          priceRanges: (searchTrends?.priceRanges || []).map((r) => r.min),
-          propertyTypes: searchTrends?.propertyTypes || [],
-          filters: []
-        },
-        listingPerformance: listingPerformance.map(listing => ({
-          views: listing.views,
-          saves: listing.saves,
-          inquiries: listing.inquiries,
-          conversions: Math.round(listing.inquiries * 0.3), // Estimate conversions
-          averageTimeActive: 30, // Default assumption
-          listingId: listing.listingId,
-          title: listing.title,
-          location: listing.location,
-          rent: listing.rent,
-          propertyType: listing.propertyType
-        })),
-        marketTrends: marketTrends.map(trend => ({
-          area: trend.area || 'Unknown',
-          demandScore: trend.demand_score || 5,
-          averageRent: trend.avg_rent || 0,
-          popularAmenities: trend.popular_amenities || [],
-          seasonality: {}
-        })),
-        userBehavior: {
-          avgTimeOnListing: 45000, // 45 seconds default
-          topFeatureClicks: ['photos', 'contact', 'save'],
-          conversionFunnelSteps: {
-            view: 100,
-            save: 15,
-            inquiry: 8,
-            conversion: 3
-          }
+        if (profile?.account_type === 'broker') {
+          setIsBroker(true)
+        } else {
+          showToast('Broker account required for analytics', { variant: 'warning' })
+          router.push('/profile')
         }
+      } catch (error) {
+        console.error('Error checking broker access:', error)
+        router.push('/profile')
+      } finally {
+        setCheckingAccess(false)
       }
-
-      const insights = await openAIService.generateBrokerInsights(user.id, analyticsData)
-      setAiInsights(insights)
-    } catch (error) {
-      console.error('Failed to generate AI insights:', error)
-      // Show user-friendly error message
-      alert('Failed to generate AI insights. Please try again later.')
-    } finally {
-      setIsLoadingInsights(false)
     }
-  }
 
-  if (loading || isLoadingData) {
+    if (!loading && user) {
+      checkBrokerAccess()
+    } else if (!loading && !user) {
+      router.push('/')
+    }
+  }, [user, loading, router])
+
+  // Load market insights
+  const loadMarketInsights = useCallback(async () => {
+    if (!selectedCity) return
+    
+    setLoadingMarket(true)
+    try {
+      const response = await fetchAnalytics({
+        city: selectedCity,
+        days: selectedPeriod,
+        type: 'market'
+      })
+
+      if (response) {
+        setMarketData(response.data as MarketData)
+        setAiSummary(response.ai_summary || '')
+      } else {
+        showToast('Failed to load market insights', { variant: 'error' })
+      }
+    } catch (error) {
+      console.error('Error loading market insights:', error)
+      showToast('Failed to load market insights', { variant: 'error' })
+    } finally {
+      setLoadingMarket(false)
+    }
+  }, [selectedCity, selectedPeriod])
+
+  // Load performance data
+  const loadPerformanceData = useCallback(async () => {
+    setLoadingPerformance(true)
+    try {
+      const response = await fetchAnalytics({
+        days: selectedPeriod,
+        type: 'performance'
+      })
+
+      if (response) {
+        setPerformanceData(response.data as BrokerPerformance)
+      } else {
+        showToast('Failed to load performance data', { variant: 'error' })
+      }
+    } catch (error) {
+      console.error('Error loading performance data:', error)
+      showToast('Failed to load performance data', { variant: 'error' })
+    } finally {
+      setLoadingPerformance(false)
+    }
+  }, [selectedPeriod])
+
+  // Initial load
+  useEffect(() => {
+    if (isBroker) {
+      loadMarketInsights()
+      loadPerformanceData()
+    }
+  }, [isBroker, selectedCity, selectedPeriod, loadMarketInsights, loadPerformanceData])
+
+  if (loading || checkingAccess) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-16 flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="flex items-center justify-center pt-32">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
         </div>
       </div>
     )
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pt-16 max-w-4xl mx-auto px-4 py-12">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-            <p className="text-gray-600">Please log in to access broker analytics.</p>
-          </div>
-        </div>
-      </div>
-    )
+  if (!isBroker) {
+    return null // Redirecting to profile
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-                <p className="text-gray-600">AI-powered insights for your property listings</p>
-              </div>
-              <div className="flex items-center gap-4 mt-4 sm:mt-0">
-                {/* Time Range Selector */}
-                <div className="flex bg-white border border-gray-200 rounded-lg p-1">
-                  {[7, 30, 90].map(days => (
-                    <button
-                      key={days}
-                      onClick={() => setSelectedTimeRange(days as 7 | 30 | 90)}
-                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        selectedTimeRange === days
-                          ? 'bg-purple-100 text-purple-700 font-medium'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      {days}d
-                    </button>
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Crown className="h-8 w-8 text-yellow-500" />
+                Broker Analytics
+              </h1>
+              <p className="text-gray-600 mt-2">AI-powered insights for your real estate business</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger className="w-48">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CITIES.map(city => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
-                </div>
-                <Button onClick={() => loadAnalyticsData()} variant="outline" size="sm">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
+                </SelectContent>
+              </Select>
+              <Select value={selectedPeriod.toString()} onValueChange={(v) => setSelectedPeriod(parseInt(v))}>
+                <SelectTrigger className="w-40">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_PERIODS.map(period => (
+                    <SelectItem key={period.value} value={period.value.toString()}>
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  loadMarketInsights()
+                  loadPerformanceData()
+                }}
+                disabled={loadingMarket || loadingPerformance}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${(loadingMarket || loadingPerformance) ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
           </div>
+        </div>
 
-          {/* Performance Metrics */}
-          {performanceMetrics && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Views</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {performanceMetrics.totalViews.toLocaleString()}
-                      </p>
-                    </div>
-                    <Eye className="h-8 w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
+        <Tabs defaultValue="market" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="market" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Market Insights
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              My Performance
+            </TabsTrigger>
+            <TabsTrigger value="recommendations" className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              AI Recommendations
+            </TabsTrigger>
+          </TabsList>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Inquiries</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {performanceMetrics.totalInquiries.toLocaleString()}
-                      </p>
-                    </div>
-                    <MessageSquare className="h-8 w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {performanceMetrics.conversionRate.toFixed(1)}%
-                      </p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-purple-500" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Active Listings</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {performanceMetrics.totalListings}
-                      </p>
-                    </div>
-                    <Home className="h-8 w-8 text-orange-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* AI Insights Section */}
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  AI-Powered Insights
-                </CardTitle>
-                <Button 
-                  onClick={generateAIInsights} 
-                  disabled={isLoadingInsights}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isLoadingInsights ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Insights
-                    </>
-                  )}
-                </Button>
+          {/* Market Insights Tab */}
+          <TabsContent value="market" className="space-y-6">
+            {loadingMarket ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <span className="ml-3 text-gray-600">Loading market insights...</span>
               </div>
-            </CardHeader>
-            <CardContent>
-              {aiInsights ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Market Insights */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-blue-500" />
-                      Market Insights
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Trending Keywords</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {aiInsights.marketInsights.trendingKeywords.slice(0, 5).map((keyword, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
+            ) : marketData ? (
+              <>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Searches</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {marketData.property_demand.reduce((sum, item) => sum + item.search_count, 0)}
+                          </p>
                         </div>
+                        <Users className="h-8 w-8 text-blue-500" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Popular Features</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {aiInsights.marketInsights.popularFeatures.slice(0, 4).map((feature, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {feature}
-                            </Badge>
-                          ))}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Avg Budget</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {formatBudget(marketData.property_demand.reduce((sum, item) => sum + (item.avg_budget || 0), 0) / Math.max(marketData.property_demand.length, 1))}
+                          </p>
                         </div>
+                        <TrendingUp className="h-8 w-8 text-green-500" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Seasonal Trends</p>
-                        <p className="text-sm text-gray-700 mt-1">{aiInsights.marketInsights.seasonalTrends}</p>
-                      </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
-                  {/* Recommendations */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <Lightbulb className="h-4 w-4 text-yellow-500" />
-                      Recommendations
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Pricing Optimization</p>
-                        <p className="text-sm text-gray-700 mt-1">{aiInsights.recommendations.pricingOptimization}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Content Improvement</p>
-                        <p className="text-sm text-gray-700 mt-1">{aiInsights.recommendations.contentImprovement}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Missing Amenities</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {aiInsights.recommendations.missingAmenities.slice(0, 3).map((amenity, index) => (
-                            <Badge key={index} variant="destructive" className="text-xs">
-                              + {amenity}
-                            </Badge>
-                          ))}
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Top Property</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {marketData.property_demand.sort((a, b) => b.search_count - a.search_count)[0]?.property_type || 'N/A'}
+                          </p>
                         </div>
+                        <BarChart3 className="h-8 w-8 text-purple-500" />
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
-                  {/* Performance Metrics */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-500" />
-                      Performance Score
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm font-medium text-gray-600">Competitive Rating</p>
-                          <span className="text-sm font-bold text-gray-900">
-                            {aiInsights.performanceMetrics.competitiveRating}/10
-                          </span>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Gated Demand</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {Math.round((marketData.property_demand.reduce((sum, item) => sum + item.gated_preference, 0) / Math.max(marketData.property_demand.reduce((sum, item) => sum + item.search_count, 0), 1)) * 100)}%
+                          </p>
                         </div>
-                        <Progress 
-                          value={aiInsights.performanceMetrics.competitiveRating * 10} 
-                          className="h-2"
-                        />
+                        <MapPin className="h-8 w-8 text-orange-500" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Avg Listing Duration</p>
-                        <p className="text-sm text-gray-700">
-                          {Math.round(aiInsights.performanceMetrics.averageListingDuration)} days
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Target Audience</p>
-                        <p className="text-sm text-gray-700">{aiInsights.recommendations.targetAudience}</p>
-                      </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Generate AI Insights</h3>
-                  <p className="text-gray-600 mb-4">
-                    Get personalized recommendations and market insights powered by AI
-                  </p>
-                  <Button onClick={generateAIInsights} className="bg-purple-600 hover:bg-purple-700">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Insights
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Search Trends */}
-          {searchTrends && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Search className="h-5 w-5 text-blue-500" />
-                    Popular Search Keywords
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {searchTrends.keywords.slice(0, 8).map((keyword: string, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 capitalize">{keyword}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          #{index + 1}
+                {/* Property Demand Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Property Type Demand in {selectedCity}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {marketData.property_demand.map((item, index) => (
+                        <div key={item.property_type} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                              <span className="text-lg font-bold text-purple-600">{index + 1}</span>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{item.property_type}</h3>
+                              <p className="text-sm text-gray-600">{item.search_count} searches</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900">{formatBudget(item.avg_budget || 0)}</p>
+                            <p className="text-sm text-gray-600">avg budget</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Top Filters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Most Applied Filters</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-3">
+                      {marketData.top_filters.map((filter, index) => (
+                        <Badge key={filter.filter_key} variant="secondary" className="text-sm px-3 py-2">
+                          #{index + 1} {filter.filter_key} ({filter.usage_count} uses)
                         </Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No market data available</h3>
+                  <p className="text-gray-600">Select a city and time period to view insights</p>
                 </CardContent>
               </Card>
+            )}
+          </TabsContent>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-green-500" />
-                    Popular Locations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {searchTrends.locations.slice(0, 8).map((location: string, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{location}</span>
-                        <Badge variant="outline" className="text-xs">
-                          #{index + 1}
-                        </Badge>
+          {/* Performance Tab */}
+          <TabsContent value="performance" className="space-y-6">
+            {loadingPerformance ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <span className="ml-3 text-gray-600">Loading your performance...</span>
+              </div>
+            ) : performanceData ? (
+              <>
+                {/* Performance Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Listings</p>
+                          <p className="text-2xl font-bold text-gray-900">{performanceData.summary.total_listings}</p>
+                        </div>
+                        <Eye className="h-8 w-8 text-blue-500" />
                       </div>
-                    ))}
-                  </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Views</p>
+                          <p className="text-2xl font-bold text-gray-900">{performanceData.summary.total_views}</p>
+                        </div>
+                        <Eye className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Messages</p>
+                          <p className="text-2xl font-bold text-gray-900">{performanceData.summary.total_messages}</p>
+                        </div>
+                        <MessageCircle className="h-8 w-8 text-purple-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Avg Views/Post</p>
+                          <p className="text-2xl font-bold text-gray-900">{Math.round(performanceData.summary.avg_views_per_post || 0)}</p>
+                        </div>
+                        <BarChart3 className="h-8 w-8 text-orange-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Individual Post Performance */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your Listings Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {performanceData.posts.map((post) => (
+                        <div key={post.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{post.title}</h3>
+                              <p className="text-sm text-gray-600">{post.property_type} • {post.city} • {formatBudget(post.rent)}/month</p>
+                            </div>
+                            <Badge variant="outline" className={`${calculateEngagementRate(post) > 10 ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'}`}>
+                              {calculateEngagementRate(post).toFixed(1)}% engagement
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-4 gap-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Eye className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm font-medium">{post.views}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <Bookmark className="h-4 w-4 text-green-500" />
+                              <span className="text-sm font-medium">{post.saves}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <MessageCircle className="h-4 w-4 text-purple-500" />
+                              <span className="text-sm font-medium">{post.messages}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <Phone className="h-4 w-4 text-orange-500" />
+                              <span className="text-sm font-medium">{post.phone_reveals}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No performance data</h3>
+                  <p className="text-gray-600">Create some listings to see performance analytics</p>
                 </CardContent>
               </Card>
-            </div>
-          )}
+            )}
+          </TabsContent>
 
-          {/* Listing Performance Table */}
-          {listingPerformance.length > 0 && (
+          {/* AI Recommendations Tab */}
+          <TabsContent value="recommendations" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Listing Performance</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  AI-Powered Recommendations for {selectedCity}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-2 font-medium text-gray-600">Property</th>
-                        <th className="text-right py-3 px-2 font-medium text-gray-600">Views</th>
-                        <th className="text-right py-3 px-2 font-medium text-gray-600">Saves</th>
-                        <th className="text-right py-3 px-2 font-medium text-gray-600">Inquiries</th>
-                        <th className="text-right py-3 px-2 font-medium text-gray-600">Conversion</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {listingPerformance.slice(0, 10).map((listing) => (
-                        <tr key={listing.listingId} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-2">
-                            <div>
-                              <p className="font-medium text-gray-900 truncate max-w-xs">
-                                {listing.title}
-                              </p>
-                              <p className="text-gray-500 text-xs">
-                                {listing.location} • ₹{listing.rent.toLocaleString()}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="text-right py-3 px-2 text-gray-900">
-                            {listing.views.toLocaleString()}
-                          </td>
-                          <td className="text-right py-3 px-2 text-gray-900">
-                            {listing.saves.toLocaleString()}
-                          </td>
-                          <td className="text-right py-3 px-2 text-gray-900">
-                            {listing.inquiries.toLocaleString()}
-                          </td>
-                          <td className="text-right py-3 px-2">
-                            <Badge 
-                              variant={listing.conversionRate > 5 ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {listing.conversionRate.toFixed(1)}%
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {loadingMarket ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+                    <span className="ml-3 text-gray-600">Generating AI insights...</span>
+                  </div>
+                ) : aiSummary ? (
+                  <div className="prose prose-gray max-w-none">
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                        {aiSummary}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Crown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No AI insights available</h3>
+                    <p className="text-gray-600">Load market data to generate AI recommendations</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Report</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4">
+                  <Button variant="outline" disabled>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF (Coming Soon)
+                  </Button>
+                  <Button variant="outline" disabled>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV (Coming Soon)
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-      </div>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   )
 }

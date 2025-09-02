@@ -49,6 +49,24 @@ class AnalyticsService {
     resultsCount: number = 0
   ): Promise<void> {
     try {
+      // Persist user filters for analytics
+      try {
+        await supabase.rpc("upsert_user_search_filter", {
+          p_user_id: this.userId || null,
+          p_session_id: this.sessionId,
+          p_filters: filters as Record<string, unknown>,
+          p_city: (filters.location as string) || null,
+          p_state: (filters as Record<string, unknown>).state || null,
+          p_area: (filters as Record<string, unknown>).area || null,
+          p_property_type: (filters.propertyType as string) || null,
+          p_min_rent: (filters.minRent as number) || null,
+          p_max_rent: (filters.maxRent as number) || null,
+          p_amenities: (filters.amenities as string[]) || null,
+        });
+      } catch (e) {
+        console.warn("Failed to upsert user filter:", e);
+      }
+
       await supabase.rpc("track_search", {
         p_user_id: this.userId || null,
         p_session_id: this.sessionId,

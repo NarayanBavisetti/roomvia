@@ -24,7 +24,6 @@ import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import ImageUpload from '@/components/image-upload'
 import { CloudinaryImage } from '@/lib/cloudinary'
-import { openAIService } from '@/lib/openai'
 import { showToast } from '@/lib/toast'
 
 // Property types for dropdown
@@ -50,8 +49,10 @@ interface FormData {
   title: string
   propertyType: string
   city: string
+  area: string
   state: string
   country: string
+  buildingName: string
   areaSqft: string
   floor: string
   description: string
@@ -70,8 +71,10 @@ const initialFormData: FormData = {
   title: '',
   propertyType: '',
   city: '',
+  area: '',
   state: '',
   country: 'India', // Default to India
+  buildingName: '',
   areaSqft: '',
   floor: '',
   description: '',
@@ -132,15 +135,29 @@ URGENT: Male Flatmate Needed | Move-in immediately
   }
 }
 
-// AI parsing function using GPT-4o mini
+// AI parsing function via server API
 const parseListingText = async (text: string, userId?: string): Promise<Partial<FormData>> => {
   try {
     if (!userId) {
       throw new Error('User authentication required for AI parsing')
     }
 
-    // Use the OpenAI service to parse the text
-    const result = await openAIService.parseListingText(userId, text, 'text')
+    // Call server API to parse the text (keeps OpenAI on server)
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    const res = await fetch('/api/ai/parse-listing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text, inputType: 'text' }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Failed to parse text')
+    }
+    const { result } = await res.json()
     
     if (!result) {
       throw new Error('Failed to parse the listing text. Please try again or fill the form manually.')
@@ -322,8 +339,10 @@ export default function AddListingPage() {
         title: formData.title.trim(),
         property_type: formData.propertyType,
         city: formData.city.trim(),
+        area: formData.area.trim() || null,
         state: formData.state.trim(),
         country: formData.country.trim(),
+        building_name: formData.buildingName.trim() || null,
         area_sqft: formData.areaSqft ? parseInt(formData.areaSqft) : null,
         floor: formData.floor ? parseInt(formData.floor) : null,
         description: formData.description?.trim() || null,
@@ -367,14 +386,17 @@ export default function AddListingPage() {
 
       console.log('Listing created successfully:', data[0])
       
-      // Toast + redirect to listing page
-      const createdListing = data[0]
-      showToast('Listing created successfully', { variant: 'success' })
-      router.push(`/listing/${createdListing.id}`)
+      // Show success toast and redirect to landing page
+      showToast('Listing created successfully! You can now see it on the homepage.', { variant: 'success' })
       
       // Reset form
       setFormData(initialFormData)
       setRawText('')
+      
+      // Redirect to landing page after a brief delay to show the toast
+      setTimeout(() => {
+        router.push('/')
+      }, 1000)
       
       // Optionally: nothing else
       
@@ -654,7 +676,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                               <Label htmlFor="city" className="text-sm font-medium text-gray-700">City *</Label>
                               <Input
@@ -663,6 +685,16 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                                 placeholder="e.g., Bangalore"
                                 required
+                                className="mt-1 border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="area" className="text-sm font-medium text-gray-700">Area/Locality</Label>
+                              <Input
+                                id="area"
+                                value={formData.area}
+                                onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
+                                placeholder="e.g., Koramangala, Gachibowli, HSR Layout"
                                 className="mt-1 border-gray-300"
                               />
                             </div>
@@ -688,6 +720,18 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 className="mt-1 border-gray-300"
                               />
                             </div>
+                          </div>
+                          
+                          {/* Building/Apartment Name */}
+                          <div>
+                            <Label htmlFor="buildingName" className="text-sm font-medium text-gray-700">Building/Apartment Name</Label>
+                            <Input
+                              id="buildingName"
+                              value={formData.buildingName}
+                              onChange={(e) => setFormData(prev => ({ ...prev, buildingName: e.target.value }))}
+                              placeholder="e.g., Prestige Shantiniketan, Brigade Gateway"
+                              className="mt-1 border-gray-300"
+                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">

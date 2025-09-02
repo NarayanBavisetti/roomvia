@@ -103,20 +103,35 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
     >
       {/* Image container with slideshow */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        <Image
-          src={
-            flat.images && flat.images.length > 0
-              ? (flat.images[currentIndex]?.url || flat.image_url)
-              : flat.image_url
-          }
-          alt={flat.title}
-          fill
-          className={`object-cover group-hover:scale-105 transition-transform duration-300 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onLoad={() => setImageLoaded(true)}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+        {(() => {
+          const imageSrc = flat.images && flat.images.length > 0
+            ? (flat.images[currentIndex]?.url || flat.image_url)
+            : flat.image_url;
+          
+          return imageSrc ? (
+            <Image
+              src={imageSrc}
+              alt={flat.title}
+              fill
+              className={`object-cover group-hover:scale-105 transition-transform duration-300 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => setImageLoaded(true)}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <div className="text-gray-400 text-center">
+                <div className="w-12 h-12 mx-auto mb-2 opacity-50">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                  </svg>
+                </div>
+                <p className="text-sm">No image</p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Manual navigation arrows */}
         {flat.images && flat.images.length > 1 && (

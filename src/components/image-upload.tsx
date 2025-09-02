@@ -17,6 +17,7 @@ interface ImageUploadProps {
 }
 
 interface UploadingImage {
+  id: string
   file: File
   progress: number
   error?: string
@@ -39,7 +40,7 @@ export default function ImageUpload({
     imagesRef.current = images
   }, [images])
 
-  const uploadFile = useCallback(async (file: File, uploadingIndex: number) => {
+  const uploadFile = useCallback(async (file: File, uploadingId: string) => {
     const formData = new FormData()
     formData.append('file', file)
     if (listingId) {
@@ -57,8 +58,8 @@ export default function ImageUpload({
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 100)
           setUploadingImages(prev =>
-            prev.map((img, idx) =>
-              idx === uploadingIndex ? { ...img, progress } : img
+            prev.map((img) =>
+              img.id === uploadingId ? { ...img, progress } : img
             )
           )
         }
@@ -101,7 +102,7 @@ export default function ImageUpload({
       }
 
       // Add to images and remove from uploading
-      setUploadingImages(prev => prev.filter((_, idx) => idx !== uploadingIndex))
+      setUploadingImages(prev => prev.filter((img) => img.id !== uploadingId))
       onImagesChange([...(imagesRef.current || []), imageToAdd])
 
     } catch (error) {
@@ -137,6 +138,7 @@ export default function ImageUpload({
 
     // Create uploading images with previews
     const newUploadingImages: UploadingImage[] = validFiles.map(file => ({
+      id: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       file,
       progress: 0,
       preview: URL.createObjectURL(file)
@@ -145,21 +147,23 @@ export default function ImageUpload({
     setUploadingImages(prev => [...prev, ...newUploadingImages])
 
     // Upload each file
-    for (let i = 0; i < validFiles.length; i++) {
-      const file = validFiles[i]
-      const uploadingImageIndex = uploadingImages.length + i
-
+    for (let i = 0; i < newUploadingImages.length; i++) {
+      const uploadingImage = newUploadingImages[i]
       try {
-        await uploadFile(file, uploadingImageIndex)
+        await uploadFile(uploadingImage.file, uploadingImage.id)
       } catch (error) {
         console.error('Upload failed:', error)
         setUploadingImages(prev =>
-          prev.map((img, idx) =>
-            idx === uploadingImageIndex
+          prev.map((img) =>
+            img.id === uploadingImage.id
               ? { ...img, error: error instanceof Error ? error.message : 'Upload failed' }
               : img
           )
         )
+        // Show user-friendly error message
+        setTimeout(() => {
+          alert(`Failed to upload ${uploadingImage.file.name}:\n${error instanceof Error ? error.message : 'Upload failed'}`)
+        }, 100)
       }
     }
   }, [disabled, images.length, uploadingImages.length, maxImages, uploadFile])
@@ -202,13 +206,41 @@ export default function ImageUpload({
     // You can add this functionality later if needed
   }, [images, onImagesChange])
 
-  const removeUploadingImage = useCallback((index: number) => {
+  const removeUploadingImage = useCallback((uploadingId: string) => {
     setUploadingImages(prev => {
-      const imageToRemove = prev[index]
-      URL.revokeObjectURL(imageToRemove.preview)
-      return prev.filter((_, idx) => idx !== index)
+      const imageToRemove = prev.find(img => img.id === uploadingId)
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.preview)
+      }
+      return prev.filter((img) => img.id !== uploadingId)
     })
   }, [])
+
+
+  const retryFailedUpload = useCallback(async (uploadingId: string) => {
+    const uploadingImage = uploadingImages.find(img => img.id === uploadingId)
+    if (!uploadingImage?.error) return
+
+    // Reset error and progress
+    setUploadingImages(prev =>
+      prev.map((img) =>
+        img.id === uploadingId ? { ...img, error: undefined, progress: 0 } : img
+      )
+    )
+
+    try {
+      await uploadFile(uploadingImage.file, uploadingId)
+    } catch (error) {
+      console.error('Retry upload failed:', error)
+      setUploadingImages(prev =>
+        prev.map((img) =>
+          img.id === uploadingId
+            ? { ...img, error: error instanceof Error ? error.message : 'Upload failed' }
+            : img
+        )
+      )
+    }
+  }, [uploadingImages, uploadFile])
 
   const setPrimaryImage = useCallback((index: number) => {
     const newImages = images.map((img, idx) => ({
@@ -297,15 +329,29 @@ export default function ImageUpload({
                   </div>
                 )}
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeUploadingImage(index)}
-                className="flex-shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex space-x-1 flex-shrink-0">
+                {uploadingImage.error && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => retryFailedUpload(uploadingImage.id)}
+                    className="text-purple-600 hover:text-purple-700"
+                    title="Retry upload"
+                  >
+                    ↻
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeUploadingImage(uploadingImage.id)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -326,14 +372,20 @@ export default function ImageUpload({
                 }`}
               >
                 <div className="aspect-square">
-                  <Image
-                    src={image.url}
-                    alt={`Property image ${index + 1}`}
-                    width={200}
-                    height={200}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+                  {image.url ? (
+                    <Image
+                      src={image.url}
+                      alt={`Property image ${index + 1}`}
+                      width={200}
+                      height={200}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Primary badge */}

@@ -10,12 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Heart, FileText, Settings } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Heart, FileText, Settings, BarChart3 } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import LoginModal from '@/components/auth/login-modal'
 import OTPModal from '@/components/auth/otp-modal'
+import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -32,6 +33,7 @@ export default function Navbar() {
   const isFlatmatesSection = pathname?.startsWith('/flatmates')
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
   const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
+  const [isBroker, setIsBroker] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,6 +51,27 @@ export default function Navbar() {
       }
     }
   }, [])
+
+  // Check if current user is a broker to show Analytics tab
+  useEffect(() => {
+    const checkBroker = async () => {
+      if (!user) {
+        setIsBroker(false)
+        return
+      }
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .maybeSingle()
+        setIsBroker((data as { account_type?: string })?.account_type === 'broker')
+      } catch {
+        setIsBroker(false)
+      }
+    }
+    checkBroker()
+  }, [user])
 
   const handleOTPSent = (contact: string, type: 'email' | 'sms') => {
     setOtpContact(contact)
@@ -221,6 +244,22 @@ export default function Navbar() {
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Profile</span>
                     </div>
                   </DropdownMenuItem>
+                  {isBroker && (
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push('/broker/analytics')
+                      }}
+                      className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="p-1.5 rounded-md bg-yellow-50 group-hover:bg-yellow-100 transition-colors">
+                          <BarChart3 className="h-4 w-4 text-yellow-600" />
+                        </div>
+                        <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Broker Analytics</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={(e) => {
                       e.preventDefault()

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { useListingAnalytics, useSearchAnalytics, useAnalyticsIntegration } from '@/hooks/useAnalyticsIntegration'
+import { useAnalyticsIntegration } from '@/hooks/useAnalyticsIntegration'
 
 interface AnalyticsWrapperProps {
   children: React.ReactNode
@@ -28,12 +28,12 @@ export function ListingAnalyticsWrapper({
   children, 
   className 
 }: ListingAnalyticsWrapperProps) {
-  const { onListingView } = useListingAnalytics()
+  const { trackListingView } = useAnalyticsIntegration()
 
   useEffect(() => {
     // Track listing view when component mounts
-    onListingView(listingId, brokerId)
-  }, [listingId, brokerId, onListingView])
+    trackListingView(listingId, { property_type: '', city: '', state: '', rent: 0 })
+  }, [listingId, brokerId, trackListingView])
 
   return (
     <div className={className}>
@@ -81,21 +81,18 @@ export function AnalyticsListingCard({
   onShare
 }: AnalyticsListingCardProps) {
   const { 
-    onListingSave, 
-    onListingInquiry, 
-    onPhoneReveal: trackPhoneReveal,
-    onListingShare,
-    onFeatureClick,
-    onPhotoClick
-  } = useListingAnalytics()
+    trackSave, 
+    trackMessage, 
+    trackPhoneReveal
+  } = useAnalyticsIntegration()
 
   const handleSave = () => {
-    onListingSave(listing.id)
+    trackSave(listing.id, 'listing')
     onSave?.()
   }
 
   const handleInquiry = () => {
-    onListingInquiry(listing.id)
+    trackMessage(listing.user_id, listing.id)
     onInquiry?.()
   }
 
@@ -105,16 +102,18 @@ export function AnalyticsListingCard({
   }
 
   const handleShare = (platform?: string) => {
-    onListingShare(listing.id, platform)
+    // No tracking for share yet
     onShare?.(platform)
   }
 
   const handleFeatureClick = (feature: string) => {
-    onFeatureClick(listing.id, feature)
+    // No tracking for feature click yet
+    console.log('Feature clicked:', feature)
   }
 
   const handlePhotoClick = (photoIndex: number) => {
-    onPhotoClick(listing.id, photoIndex)
+    // No tracking for photo click yet
+    console.log('Photo clicked:', photoIndex)
   }
 
   // Clone children and pass analytics handlers
@@ -146,14 +145,14 @@ interface SearchAnalyticsWrapperProps {
 }
 
 export function SearchAnalyticsWrapper({ children }: SearchAnalyticsWrapperProps) {
-  const { onSearch, onFilterChange } = useSearchAnalytics()
+  const { trackSearch, trackFilterApply } = useAnalyticsIntegration()
 
   // Enhanced children with search tracking
-  const enhancedChildren = React.cloneElement<{ onSearch?: typeof onSearch; onFilterChange?: typeof onFilterChange }>(
-    children as React.ReactElement<{ onSearch?: typeof onSearch; onFilterChange?: typeof onFilterChange }>,
+  const enhancedChildren = React.cloneElement<{ onSearch?: typeof trackSearch; onFilterChange?: typeof trackFilterApply }>(
+    children as React.ReactElement<{ onSearch?: typeof trackSearch; onFilterChange?: typeof trackFilterApply }>,
     {
-      onSearch,
-      onFilterChange
+      onSearch: trackSearch,
+      onFilterChange: trackFilterApply
     }
   )
 

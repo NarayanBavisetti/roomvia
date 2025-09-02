@@ -31,21 +31,22 @@ export default function ChatSidebar() {
     const fetchProfiles = async () => {
       const ids = Array.from(new Set(chatList.map(c => c.other_user_id))).filter(Boolean)
       if (ids.length === 0) return
-      let map: Record<string, { name: string | null; avatar_url: string | null }> = {}
+      const map: Record<string, { name: string | null; avatar_url: string | null }> = {}
       // Try profiles keyed by id (profiles.id references auth.users.id)
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url')
         .in('id', ids)
+      let finalData: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null = data
       if (error) {
         // Some projects use profiles.user_id instead
         const retry = await supabase
           .from('profiles')
           .select('user_id, full_name, avatar_url')
           .in('user_id', ids)
-        data = retry.data as any[] | null
+        finalData = retry.data as { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null
       }
-      ;(data || []).forEach((row: any) => {
+      ;(finalData || []).forEach((row: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }) => {
         const key = row.id || row.user_id
         if (key) {
           map[key] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
