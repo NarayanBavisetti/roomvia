@@ -10,45 +10,79 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle } from 'lucide-react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Heart, FileText, Settings, BarChart3 } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import LoginModal from '@/components/auth/login-modal'
 import OTPModal from '@/components/auth/otp-modal'
+import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
+  // const [isScrolled, setIsScrolled] = useState(false) // Removed - not needed since navbar scrolls naturally
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showOTPModal, setShowOTPModal] = useState(false)
   const [otpContact, setOtpContact] = useState('')
   const [otpType, setOtpType] = useState<'email' | 'sms'>('email')
+  // const [hideForFilters, setHideForFilters] = useState(false) // Removed - letting navbar scroll naturally
 
   const { user, loading, signOut } = useAuth()
   const { toggleSidebar, chatList } = useChat()
   const pathname = usePathname()
+  const router = useRouter()
   const isFlatmatesSection = pathname?.startsWith('/flatmates')
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
   const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
+  const [isBroker, setIsBroker] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-
-    // Only add scroll listener on client side
+    // Only add login modal listener on client side
     if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', handleScroll)
       const openLogin = () => setShowLoginModal(true)
       window.addEventListener('open-login-modal', openLogin as EventListener)
       return () => {
-        window.removeEventListener('scroll', handleScroll)
         window.removeEventListener('open-login-modal', openLogin as EventListener)
       }
     }
   }, [])
+
+  // Remove the navbar hiding behavior - let it scroll naturally
+  // useEffect(() => {
+  //   const onSticky = (e: any) => {
+  //     try {
+  //       const sticky = Boolean(e?.detail?.sticky)
+  //       setHideForFilters(sticky)
+  //     } catch {
+  //       // no-op
+  //     }
+  //   }
+  //   if (typeof window !== 'undefined') {
+  //     window.addEventListener('filters-sticky-change', onSticky as EventListener)
+  //     return () => window.removeEventListener('filters-sticky-change', onSticky as EventListener)
+  //   }
+  // }, [])
+
+  // Check if current user is a broker to show Analytics tab
+  useEffect(() => {
+    const checkBroker = async () => {
+      if (!user) {
+        setIsBroker(false)
+        return
+      }
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .maybeSingle()
+        setIsBroker((data as { account_type?: string })?.account_type === 'broker')
+      } catch {
+        setIsBroker(false)
+      }
+    }
+    checkBroker()
+  }, [user])
 
   const handleOTPSent = (contact: string, type: 'email' | 'sms') => {
     setOtpContact(contact)
@@ -75,28 +109,67 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white shadow-md' : 'bg-white/95 backdrop-blur-sm'
-    }`}>
+    <nav className="w-full bg-white/95 backdrop-blur-sm  z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/">
-              <h1 className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors">
-                Roomvia
-              </h1>
-            </Link>
+            <button 
+              onClick={(e) => {
+                e.preventDefault()
+                router.push('/')
+              }}
+              className="text-2xl font-bold text-purple-500 cursor-pointer hover:text-purple-800 transition-colors"
+            >
+              Roomvia
+            </button>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-              Flats
-            </Link>
-            <Link href="/flatmates" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-              Flatmates
-            </Link>
+          <div className="hidden md:flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                router.push('/')
+              }}
+              className={`group relative px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                pathname === '/' 
+                  ? 'text-purple-600' 
+                  : 'text-gray-700 hover:text-purple-600'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Home className={`h-4 w-4 transition-all duration-300 group-hover:scale-110 ${
+                  pathname === '/' ? 'text-purple-600' : 'text-gray-500'
+                }`} />
+                <span>Flats</span>
+              </div>
+              {pathname === '/' && (
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-purple-600 rounded-full" />
+              )}
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                router.push('/flatmates')
+              }}
+              className={`group relative px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                pathname?.startsWith('/flatmates') 
+                  ? 'text-purple-600' 
+                  : 'text-gray-700 hover:text-purple-600'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Users className={`h-4 w-4 transition-all duration-300 group-hover:scale-110 ${
+                  pathname?.startsWith('/flatmates') ? 'text-purple-600' : 'text-gray-500'
+                }`} />
+                <span>Flatmates</span>
+              </div>
+              {pathname?.startsWith('/flatmates') && (
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-purple-600 rounded-full" />
+              )}
+            </button>
           </div>
 
           {/* Desktop Auth Buttons */}
@@ -106,9 +179,9 @@ export default function Navbar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="relative h-9 w-9 hover:bg-gray-100 transition-colors"
+                className="group relative h-11 w-11 rounded-full bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-all duration-300 hover:scale-110 transform shadow-sm hover:shadow-md"
               >
-                <MessageCircle className="h-5 w-5 text-gray-600" />
+                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-all duration-300 group-hover:scale-110" />
                 {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                     {Math.min(chatList.reduce((acc, chat) => acc + chat.unread_count, 0), 9)}
@@ -118,17 +191,18 @@ export default function Navbar() {
             )}
             
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl px-4 py-2 transition-colors"
+              className="group relative bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-2xl px-6 py-3 h-11 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105 transform border-0 overflow-hidden"
               onClick={() => {
                 if (user) {
-                  window.location.href = ctaHref
+                  router.push(ctaHref)
                 } else {
                   setShowLoginModal(true)
                 }
               }}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              {ctaLabel}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out"></div>
+              <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+              <span className="relative z-10">{ctaLabel}</span>
             </Button>
             
             {loading ? (
@@ -136,41 +210,114 @@ export default function Navbar() {
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                  <Button variant="ghost" className="group relative h-11 w-11 rounded-full p-0 hover:scale-105 transition-all duration-300">
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold group-hover:from-purple-600 group-hover:to-purple-700 transition-all duration-300">
                         {getUserInitials(user)}
                       </AvatarFallback>
                     </Avatar>
+                    <div className="absolute inset-0 rounded-full bg-purple-500/20 scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
+                <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-lg border border-gray-200/50 shadow-2xl rounded-2xl p-2">
+                  <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-xl mb-2">
+                    <Avatar className="h-8 w-8 border-2 border-white shadow-md flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold">
+                        {getUserInitials(user)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col space-y-1 leading-none flex-1 min-w-0">
                       {user.email && (
-                        <p className="font-medium">{user.email}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">{user.email}</p>
                       )}
                       {user.phone && !user.email && (
-                        <p className="font-medium">{user.phone}</p>
+                        <p className="font-semibold text-gray-900 text-sm">{user.phone}</p>
                       )}
-                      <p className="w-[200px] truncate text-sm text-muted-foreground">
-                        {user.email || user.phone || 'User'}
+                      <p className="text-xs text-purple-600 font-medium">
+                        Active user
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
-                  <Link href="/profile">
-                    <DropdownMenuItem>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                  <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/profile')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                        <UserIcon className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Profile</span>
+                    </div>
+                  </DropdownMenuItem>
+                  {isBroker && (
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push('/broker/analytics')
+                      }}
+                      className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="p-1.5 rounded-md bg-yellow-50 group-hover:bg-yellow-100 transition-colors">
+                          <BarChart3 className="h-4 w-4 text-yellow-600" />
+                        </div>
+                        <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Broker Analytics</span>
+                      </div>
                     </DropdownMenuItem>
-                  </Link>
-                  <DropdownMenuItem>My Listings</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
+                  )}
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/saved')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-red-50 group-hover:bg-red-100 transition-colors">
+                        <Heart className="h-4 w-4 text-red-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Saved</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/my-listings')
+                    }}
+                    className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-green-50 group-hover:bg-green-100 transition-colors">
+                        <FileText className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">My Listings</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors">
+                        <Settings className="h-4 w-4 text-gray-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Settings</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100/50 focus:bg-gradient-to-r focus:from-red-50 focus:to-red-100/50"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-md bg-red-50 group-hover:bg-red-100 transition-colors">
+                          <LogOut className="h-4 w-4 text-red-600" />
+                        </div>
+                        <span className="font-medium text-red-600 group-hover:text-red-700 text-sm">Sign out</span>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -201,25 +348,55 @@ export default function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
-              <Link href="/" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
-                Flats
-              </Link>
-              <Link href="/flatmates" className="block px-3 py-2 text-gray-700 hover:text-blue-600 font-medium">
-                Flatmates
-              </Link>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  router.push('/')
+                  setIsMenuOpen(false)
+                }}
+                className={`group flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 w-full text-left ${
+                  pathname === '/' 
+                    ? 'text-purple-600' 
+                    : 'text-gray-700 hover:text-purple-600'
+                }`}
+              >
+                <Home className={`h-4 w-4 transition-all duration-200 group-hover:scale-110 ${
+                  pathname === '/' ? 'text-purple-600' : 'text-gray-500'
+                }`} />
+                <span>Flats</span>
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  router.push('/flatmates')
+                  setIsMenuOpen(false)
+                }}
+                className={`group flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 w-full text-left ${
+                  pathname?.startsWith('/flatmates') 
+                    ? 'text-purple-600' 
+                    : 'text-gray-700 hover:text-purple-600'
+                }`}
+              >
+                <Users className={`h-4 w-4 transition-all duration-200 group-hover:scale-110 ${
+                  pathname?.startsWith('/flatmates') ? 'text-purple-600' : 'text-gray-500'
+                }`} />
+                <span>Flatmates</span>
+              </button>
               <div className="block px-3 py-2">
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl"
+                  className="group relative w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-2xl py-3 h-12 transition-all duration-300 hover:shadow-lg overflow-hidden"
                   onClick={() => {
                     if (user) {
-                      window.location.href = ctaHref
+                      router.push(ctaHref)
                     } else {
                       setShowLoginModal(true)
                     }
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {ctaLabel}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out"></div>
+                  <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+                  <span className="relative z-10">{ctaLabel}</span>
                 </Button>
               </div>
               <div className="border-t border-gray-200 pt-4 mt-4">
@@ -228,8 +405,8 @@ export default function Navbar() {
                 ) : user ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 px-3 py-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                      <Avatar className="h-9 w-9 border-2 border-purple-200 shadow-md">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold">
                           {getUserInitials(user)}
                         </AvatarFallback>
                       </Avatar>
@@ -241,10 +418,10 @@ export default function Navbar() {
                     </div>
                     <Button 
                       variant="ghost" 
-                      className="w-full justify-start font-medium"
+                      className="group w-full justify-start font-medium transition-all duration-200 hover:bg-purple-50 rounded-lg"
                       onClick={toggleSidebar}
                     >
-                      <MessageCircle className="mr-2 h-4 w-4" />
+                      <MessageCircle className="mr-3 h-4 w-4 group-hover:text-purple-600 transition-colors duration-200" />
                       Messages
                       {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
                         <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
@@ -252,13 +429,26 @@ export default function Navbar() {
                         </span>
                       )}
                     </Button>
-                    <Link href="/profile">
-                      <Button variant="ghost" className="w-full justify-start font-medium">
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        Profile
-                      </Button>
-                    </Link>
-                    <Button variant="ghost" className="w-full justify-start font-medium">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start font-medium"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push('/profile')
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      Profile
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start font-medium"
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        router.push('/my-listings')
+                      }}
+                    >
                       My Listings
                     </Button>
                     <Button 

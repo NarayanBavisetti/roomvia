@@ -164,7 +164,7 @@ export default function LoginModal({ isOpen, onClose, onOTPSent }: LoginModalPro
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="w-full h-12 bg-purple-500 hover:bg-purple-800 text-white font-medium"
                 disabled={loading}
               >
                 {loading ? (
@@ -184,11 +184,11 @@ export default function LoginModal({ isOpen, onClose, onOTPSent }: LoginModalPro
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
               By continuing, you agree to our{' '}
-              <a href="/terms" className="text-blue-600 hover:underline">
+              <a href="/terms" className="text-purple-500 hover:underline">
                 Terms of Service
               </a>{' '}
               &{' '}
-              <a href="/privacy" className="text-blue-600 hover:underline">
+              <a href="/privacy" className="text-purple-500 hover:underline">
                 Privacy Policy
               </a>
             </p>

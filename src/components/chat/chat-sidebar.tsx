@@ -1,11 +1,12 @@
-'use client'
+ 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { X, Loader2, MessageCircle } from 'lucide-react'
 import { useChat } from '@/contexts/chat-context'
 import { formatMessageTime, truncateMessage, getDisplayName } from '@/lib/chat'
+import { supabase } from '@/lib/supabase'
 
 export default function ChatSidebar() {
   const { 
@@ -17,6 +18,8 @@ export default function ChatSidebar() {
     refreshChatList 
   } = useChat()
 
+  const [userProfiles, setUserProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({})
+
   // Refresh chat list when sidebar opens
   useEffect(() => {
     if (isSidebarOpen) {
@@ -24,15 +27,46 @@ export default function ChatSidebar() {
     }
   }, [isSidebarOpen, refreshChatList])
 
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const ids = Array.from(new Set(chatList.map(c => c.other_user_id))).filter(Boolean)
+      if (ids.length === 0) return
+      const map: Record<string, { name: string | null; avatar_url: string | null }> = {}
+      // Try profiles keyed by id (profiles.id references auth.users.id)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', ids)
+      let finalData: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null = data
+      if (error) {
+        // Some projects use profiles.user_id instead
+        const retry = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url')
+          .in('user_id', ids)
+        finalData = retry.data as { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null
+      }
+      ;(finalData || []).forEach((row: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }) => {
+        const key = row.id || row.user_id
+        if (key) {
+          map[key] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
+        }
+      })
+      setUserProfiles(prev => ({ ...prev, ...map }))
+    }
+    if (chatList.length > 0) fetchProfiles()
+  }, [chatList])
+
   if (!isSidebarOpen) return null
 
   const handleChatClick = (otherUserId: string, otherUserEmail: string) => {
-    openChat(otherUserId, otherUserEmail)
+    const display = userProfiles[otherUserId]?.name || otherUserEmail
+    openChat(otherUserId, display || otherUserEmail, 'existing-chat-placeholder')
   }
 
-  const getUserInitials = (email: string | null) => {
-    if (!email) return 'U'
-    return email.charAt(0).toUpperCase()
+  const getInitial = (id: string, email: string | null) => {
+    const label = userProfiles[id]?.name || (email ? getDisplayName(email) : 'U')
+    return label.charAt(0).toUpperCase()
   }
 
   return (
@@ -52,7 +86,7 @@ export default function ChatSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white sticky top-0">
           <div className="flex items-center gap-3">
-            <MessageCircle className="h-6 w-6 text-blue-600" />
+            <MessageCircle className="h-6 w-6 text-purple-500" />
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
           </div>
           <Button 
@@ -92,8 +126,11 @@ export default function ChatSidebar() {
                     {/* Avatar */}
                     <div className="relative">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
-                          {getUserInitials(chat.other_user_email)}
+                        {userProfiles[chat.other_user_id]?.avatar_url && (
+                          <AvatarImage src={userProfiles[chat.other_user_id]!.avatar_url!} alt={userProfiles[chat.other_user_id]?.name || 'User'} />
+                        )}
+                        <AvatarFallback className="bg-purple-500 text-white text-sm font-medium">
+                          {getInitial(chat.other_user_id, chat.other_user_email)}
                         </AvatarFallback>
                       </Avatar>
                       {chat.unread_count > 0 && (
@@ -107,7 +144,7 @@ export default function ChatSidebar() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-medium text-gray-900 truncate">
-                          {getDisplayName(chat.other_user_email)}
+                          {userProfiles[chat.other_user_id]?.name || (chat.other_user_email ? getDisplayName(chat.other_user_email) : 'User')}
                         </h3>
                         {chat.latest_message_time && (
                           <span className="text-xs text-gray-500 flex-shrink-0 ml-2">

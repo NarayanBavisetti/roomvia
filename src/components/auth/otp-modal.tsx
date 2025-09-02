@@ -183,11 +183,11 @@ export default function OTPModal({ isOpen, onClose, onBack, contact, type }: OTP
         <div className="px-6 pb-6">
           <div className="text-center mb-6">
             <div className="flex items-center justify-center mb-4">
-              <div className="p-3 bg-blue-100 rounded-full">
+              <div className="p-3 bg-purple-100 rounded-full">
                 {type === 'email' ? (
-                  <Mail className="h-6 w-6 text-blue-600" />
+                  <Mail className="h-6 w-6 text-purple-500" />
                 ) : (
-                  <Phone className="h-6 w-6 text-blue-600" />
+                  <Phone className="h-6 w-6 text-purple-500" />
                 )}
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function OTPModal({ isOpen, onClose, onBack, contact, type }: OTP
 
             <Button
               type="submit"
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="w-full h-12 bg-purple-500 hover:bg-purple-800 text-white font-medium"
               disabled={loading || otp.join('').length !== 6}
             >
               {loading ? (
@@ -248,7 +248,7 @@ export default function OTPModal({ isOpen, onClose, onBack, contact, type }: OTP
                   variant="ghost"
                   onClick={handleResend}
                   disabled={loading}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-purple-500 hover:text-purple-800"
                 >
                   Resend code
                 </Button>

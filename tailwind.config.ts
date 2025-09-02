@@ -12,6 +12,18 @@ const config: Config = {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {
+        purple: {
+          50: '#f3f0ff',
+          100: '#e8e2ff',
+          200: '#d1c8ff',
+          300: '#b2a5ff',
+          400: '#9179ff',
+          500: '#7c5dff',
+          600: '#6b46f2',
+          700: '#5b35d9',
+          800: '#4a2bbd',
+          900: '#3f2396',
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

@@ -1,6 +1,7 @@
--- Create the flatmates table
-CREATE TABLE flatmates (
+-- Create the flatmates table (idempotent-friendly for fresh setups)
+CREATE TABLE IF NOT EXISTS flatmates (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   age INTEGER NOT NULL,
   gender TEXT NOT NULL,
@@ -10,16 +11,42 @@ CREATE TABLE flatmates (
   non_smoker BOOLEAN DEFAULT true,
   food_preference TEXT NOT NULL CHECK (food_preference IN ('Veg', 'Non-Veg', 'Vegan')),
   gated_community BOOLEAN DEFAULT false,
+  city TEXT,
+  state TEXT,
   amenities TEXT[] DEFAULT '{}',
   preferred_locations TEXT[] DEFAULT '{}',
   image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert dummy data
-INSERT INTO flatmates (name, age, gender, company, budget_min, budget_max, non_smoker, food_preference, gated_community, amenities, preferred_locations, image_url) VALUES
-('Arjun Mehta', 27, 'Male', 'Google', 15000, 25000, true, 'Veg', true, '{"Gym", "WiFi", "Balcony"}', '{"Indiranagar", "Koramangala"}', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face'),
-('Priya Sharma', 24, 'Female', 'Deloitte', 12000, 20000, true, 'Non-Veg', false, '{"Parking", "Lift"}', '{"Whitefield", "Bellandur"}', 'https://images.unsplash.com/photo-1494790108755-2616b332c830?w=400&h=400&fit=crop&crop=face'),
-('Rahul Verma', 29, 'Male', 'Swiggy', 18000, 30000, true, 'Vegan', true, '{"Gym", "Swimming Pool", "Clubhouse"}', '{"HSR Layout", "Sarjapur Road"}', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face'),
-('Sneha Kapoor', 26, 'Female', 'Infosys', 10000, 18000, true, 'Veg', true, '{"WiFi", "Balcony", "Laundry"}', '{"Marathahalli", "Outer Ring Road"}', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face'),
-('Vikram Singh', 25, 'Male', 'Microsoft', 20000, 35000, false, 'Non-Veg', true, '{"Gym", "WiFi", "Parking", "Security"}', '{"Koramangala", "BTM Layout"}', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face');
+-- Ensure required columns exist for existing databases
+ALTER TABLE flatmates ADD COLUMN IF NOT EXISTS user_id UUID;
+ALTER TABLE flatmates ALTER COLUMN user_id SET NOT NULL;
+ALTER TABLE flatmates ADD CONSTRAINT flatmates_user_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE flatmates ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE flatmates ADD COLUMN IF NOT EXISTS state TEXT;
+
+-- One profile per user (optional but recommended)
+CREATE UNIQUE INDEX IF NOT EXISTS flatmates_user_unique ON flatmates(user_id);
+
+-- Enable RLS and add policies to allow users to manage their own profile
+ALTER TABLE flatmates ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = 'flatmates_select_own') THEN
+    CREATE POLICY flatmates_select_own ON flatmates
+      FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = 'flatmates_insert_own') THEN
+    CREATE POLICY flatmates_insert_own ON flatmates
+      FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = 'flatmates_update_own') THEN
+    CREATE POLICY flatmates_update_own ON flatmates
+      FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = 'flatmates_delete_own') THEN
+    CREATE POLICY flatmates_delete_own ON flatmates
+      FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;

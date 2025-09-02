@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { chatService, getDisplayName } from '@/lib/chat'
 import { useAuth } from './auth-context'
 import type { ChatListItem, ConversationMessage } from '@/lib/supabase'
+import { showToast } from '@/lib/toast'
 
 export interface ChatWindow {
   id: string
@@ -14,6 +15,8 @@ export interface ChatWindow {
   isExpanded: boolean
   messages: ConversationMessage[]
   unreadCount: number
+  listingId?: string
+  flatmateId?: string
 }
 
 interface ChatContextType {
@@ -25,7 +28,7 @@ interface ChatContextType {
   
   // Chat windows
   chatWindows: ChatWindow[]
-  openChat: (otherUserId: string, otherUserEmail: string) => void
+  openChat: (otherUserId: string, otherUserEmail: string, listingId?: string, flatmateId?: string) => void
   closeChat: (chatId: string) => void
   minimizeChat: (chatId: string) => void
   expandChat: (chatId: string) => void
@@ -52,25 +55,29 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [chatWindows, setChatWindows] = useState<ChatWindow[]>([])
   const [isLoadingChatList, setIsLoadingChatList] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState<{ [chatId: string]: boolean }>({})
+  const [chatSubscriptions, setChatSubscriptions] = useState<{ [chatId: string]: { unsubscribe: () => void } }>({})
 
   // Generate unique chat ID from two user IDs
   const generateChatId = (userId1: string, userId2: string): string => {
     return [userId1, userId2].sort().join('_')
   }
 
-  // Load chat list
+  // Load chat list - simplified without debouncing dependencies
   const refreshChatList = useCallback(async () => {
     if (!user) return
     
     setIsLoadingChatList(true)
-    const { data, error } = await chatService.getChatList()
-    
-    if (error) {
-      console.error('Error loading chat list:', error)
-    } else {
-      setChatList(data || [])
+    try {
+      const { data, error } = await chatService.getChatList()
+      
+      if (error) {
+        console.error('Error loading chat list:', error)
+      } else {
+        setChatList(data || [])
+      }
+    } finally {
+      setIsLoadingChatList(false)
     }
-    setIsLoadingChatList(false)
   }, [user])
 
   // Load messages for a specific chat
@@ -85,7 +92,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setChatWindows(prev => 
         prev.map(chat => 
           chat.id === chatId 
-            ? { ...chat, messages: data?.reverse() || [] }
+            ? { 
+                ...chat, 
+                messages: (data || []).slice().sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+              }
             : chat
         )
       )
@@ -103,18 +113,23 @@ export function ChatProvider({ children }: ChatProviderProps) {
   }
 
   // Open chat window
-  const openChat = useCallback(async (otherUserId: string, otherUserEmail: string) => {
-    const chatId = generateChatId(user?.id || '', otherUserId)
+  const openChat = useCallback(async (otherUserId: string, otherUserEmail: string, listingId?: string, flatmateId?: string) => {
+    if (!user) return
+    if (otherUserId === user.id) {
+      showToast('You cannot chat with yourself.')
+      return
+    }
+    
     const displayName = getDisplayName(otherUserEmail)
     
-    // Check if chat already exists
-    const existingChat = chatWindows.find(chat => chat.id === chatId)
-    if (existingChat) {
+    // Check if chat window already exists for this other user
+    const existingChatWindow = chatWindows.find(chat => chat.otherUserId === otherUserId)
+    if (existingChatWindow) {
       // Unminimize if minimized
-      if (existingChat.isMinimized) {
+      if (existingChatWindow.isMinimized) {
         setChatWindows(prev =>
           prev.map(chat =>
-            chat.id === chatId
+            chat.otherUserId === otherUserId
               ? { ...chat, isMinimized: false }
               : chat
           )
@@ -123,22 +138,62 @@ export function ChatProvider({ children }: ChatProviderProps) {
       return
     }
 
-    // Create new chat window
+    // Create new chat window with temporary ID (will be updated when first message is sent)
+    const tempChatId = generateChatId(user.id, otherUserId)
     const newChatWindow: ChatWindow = {
-      id: chatId,
+      id: tempChatId, // This will be updated with real database ID
       otherUserId,
       otherUserEmail,
       displayName,
       isMinimized: false,
       isExpanded: false,
       messages: [],
-      unreadCount: 0
+      unreadCount: 0,
+      listingId,
+      flatmateId
     }
 
     setChatWindows(prev => [...prev, newChatWindow])
     
+    // Set up realtime subscription for this chat
+    const subscription = await chatService.subscribeToConversation(otherUserId, (message) => {
+      console.log('Received realtime message:', { message, otherUserId })
+      setChatWindows(prev =>
+        prev.map(c => {
+          if (c.otherUserId === otherUserId) {
+            // Check if message already exists to avoid duplicates
+            const messageExists = c.messages.some(m => m.id === message.id)
+            console.log('Message processing:', { messageExists, currentMessageCount: c.messages.length })
+            if (!messageExists) {
+              const conversationMessage = {
+                id: message.id,
+                sender_id: message.sender_id,
+                receiver_id: message.receiver_id,
+                message_text: message.message_text,
+                created_at: message.created_at,
+                is_read: message.is_read,
+                sender_email: message.sender_id === user.id ? (user.email || null) : otherUserEmail
+              }
+              
+              // Remove any optimistic message with the same content
+              const filteredMessages = c.messages.filter(m => 
+                !m.id.startsWith('temp_') || m.message_text !== message.message_text
+              )
+              
+              return { ...c, messages: [...filteredMessages, conversationMessage] }
+            }
+          }
+          return c
+        })
+      )
+    })
+
+    if (subscription) {
+      setChatSubscriptions(prev => ({ ...prev, [otherUserId]: subscription }))
+    }
+    
     // Load messages
-    await loadMessages(chatId, otherUserId)
+    await loadMessages(tempChatId, otherUserId)
     
     // Mark as read
     await chatService.markMessagesRead(otherUserId)
@@ -149,6 +204,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
   // Close chat window
   const closeChat = (chatId: string) => {
+    // Find the chat window to get the otherUserId
+    const chatWindow = chatWindows.find(chat => chat.id === chatId)
+    if (chatWindow) {
+      // Unsubscribe from this chat's realtime updates using otherUserId
+      if (chatSubscriptions[chatWindow.otherUserId]) {
+        chatSubscriptions[chatWindow.otherUserId].unsubscribe()
+        setChatSubscriptions(prev => {
+          const { [chatWindow.otherUserId]: _removed, ...rest } = prev
+          void _removed  // Acknowledge unused variable
+          return rest
+        })
+      }
+    }
+    
     setChatWindows(prev => prev.filter(chat => chat.id !== chatId))
   }
 
@@ -177,34 +246,70 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Send message
   const sendMessage = async (chatId: string, message: string) => {
     const chat = chatWindows.find(c => c.id === chatId)
-    if (!chat || !user) return
+    if (!chat || !user) {
+      console.log('Chat or user not found:', { chatId, hasChat: !!chat, hasUser: !!user })
+      return
+    }
+    
+    console.log('Sending message:', { 
+      chatId, 
+      otherUserId: chat.otherUserId, 
+      message, 
+      listingId: chat.listingId, 
+      flatmateId: chat.flatmateId,
+      hasContext: !!(chat.listingId || chat.flatmateId)
+    })
 
-    const { error } = await chatService.sendMessage(chat.otherUserId, message)
+    // Add optimistic message immediately for better UX
+    const optimisticMessage = {
+      id: `temp_${Date.now()}`, // Temporary ID
+      sender_id: user.id,
+      receiver_id: chat.otherUserId,
+      message_text: message,
+      created_at: new Date().toISOString(),
+      is_read: false,
+      sender_email: user.email || null
+    }
+
+    setChatWindows(prev =>
+      prev.map(c =>
+        c.id === chatId
+          ? { ...c, messages: [...c.messages, optimisticMessage] }
+          : c
+      )
+    )
+
+    const { error, chatId: realChatId } = await chatService.sendMessage(
+      chat.otherUserId, 
+      message, 
+      chat.listingId, 
+      chat.flatmateId
+    )
     
     if (error) {
-      console.error('Error sending message:', error)
-    } else {
-      // Optimistically add message to UI
-      const newMessage: ConversationMessage = {
-        id: Date.now().toString(), // Temporary ID
-        sender_id: user.id,
-        receiver_id: chat.otherUserId,
-        message_text: message,
-        created_at: new Date().toISOString(),
-        is_read: false,
-        sender_email: user.email || null
-      }
-
+      // Remove optimistic message on error
       setChatWindows(prev =>
         prev.map(c =>
           c.id === chatId
-            ? { ...c, messages: [...c.messages, newMessage] }
+            ? { ...c, messages: c.messages.filter(m => m.id !== optimisticMessage.id) }
             : c
         )
       )
-
-      // Refresh chat list to update latest message
-      refreshChatList()
+      console.error('Error sending message:', error)
+      throw error
+    } else {
+      // Update chat window with real database chat ID if it was returned
+      if (realChatId && chat.id !== realChatId) {
+        setChatWindows(prev =>
+          prev.map(c =>
+            c.id === chatId
+              ? { ...c, id: realChatId }
+              : c
+          )
+        )
+      }
+      
+      // The real message will replace the optimistic one via realtime subscription
     }
   }
 
@@ -223,35 +328,23 @@ export function ChatProvider({ children }: ChatProviderProps) {
       )
     )
     
-    refreshChatList()
+    // Don't call refreshChatList here to avoid unnecessary API calls
   }
 
-  // Load chat list on mount
+  // Load chat list on mount - only when user changes
   useEffect(() => {
     if (user) {
       refreshChatList()
     }
   }, [user, refreshChatList])
 
-  // Set up realtime subscriptions
+  // Clean up chat subscriptions when component unmounts
   useEffect(() => {
-    if (!user) return
-
-    // Subscribe to chat list updates
-    let chatListSubscription: { unsubscribe: () => void } | null = null
-    
-    chatService.subscribeToChatList(() => {
-      refreshChatList()
-    }).then((subscription) => {
-      chatListSubscription = subscription
-    })
-
     return () => {
-      if (chatListSubscription) {
-        chatListSubscription.unsubscribe()
-      }
+      // Clean up all chat subscriptions when component unmounts
+      Object.values(chatSubscriptions).forEach(sub => sub.unsubscribe())
     }
-  }, [user, refreshChatList])
+  }, [chatSubscriptions])
 
   const value: ChatContextType = {
     isSidebarOpen,

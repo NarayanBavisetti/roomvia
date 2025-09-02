@@ -8,92 +8,7 @@ import { Users, Search, Filter, Heart } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-// Mock data for development (replace with Supabase data when configured)
-// Using fixed timestamp to prevent hydration mismatches
-const FIXED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
-
-const mockFlatmates: Flatmate[] = [
-  {
-    id: '1',
-    name: 'Arjun Mehta',
-    age: 27,
-    gender: 'Male',
-    company: 'Google',
-    budget_min: 15000,
-    budget_max: 25000,
-    non_smoker: true,
-    food_preference: 'Veg',
-    gated_community: true,
-    amenities: ['Gym', 'WiFi', 'Balcony'],
-    preferred_locations: ['Indiranagar', 'Koramangala'],
-    image_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '2',
-    name: 'Priya Sharma',
-    age: 24,
-    gender: 'Female',
-    company: 'Deloitte',
-    budget_min: 12000,
-    budget_max: 20000,
-    non_smoker: true,
-    food_preference: 'Non-Veg',
-    gated_community: false,
-    amenities: ['Parking', 'Lift'],
-    preferred_locations: ['Whitefield', 'Bellandur'],
-    image_url: 'https://images.unsplash.com/photo-1494790108755-2616b332c830?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '3',
-    name: 'Rahul Verma',
-    age: 29,
-    gender: 'Male',
-    company: 'Swiggy',
-    budget_min: 18000,
-    budget_max: 30000,
-    non_smoker: true,
-    food_preference: 'Vegan',
-    gated_community: true,
-    amenities: ['Gym', 'Swimming Pool', 'Clubhouse'],
-    preferred_locations: ['HSR Layout', 'Sarjapur Road'],
-    image_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '4',
-    name: 'Sneha Kapoor',
-    age: 26,
-    gender: 'Female',
-    company: 'Infosys',
-    budget_min: 10000,
-    budget_max: 18000,
-    non_smoker: true,
-    food_preference: 'Veg',
-    gated_community: true,
-    amenities: ['WiFi', 'Balcony', 'Laundry'],
-    preferred_locations: ['Marathahalli', 'Outer Ring Road'],
-    image_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  },
-  {
-    id: '5',
-    name: 'Vikram Singh',
-    age: 25,
-    gender: 'Male',
-    company: 'Microsoft',
-    budget_min: 20000,
-    budget_max: 35000,
-    non_smoker: false,
-    food_preference: 'Non-Veg',
-    gated_community: true,
-    amenities: ['Gym', 'WiFi', 'Parking', 'Security'],
-    preferred_locations: ['Koramangala', 'BTM Layout'],
-    image_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
-    created_at: FIXED_TIMESTAMP
-  }
-]
+// All flatmate data now comes from the database
 
 export default function FlatlatesPage() {
   const [flatmates, setFlatmates] = useState<Flatmate[]>([])
@@ -102,6 +17,7 @@ export default function FlatlatesPage() {
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
+  const [, setError] = useState<string | null>(null)
 
   // Set mounted state
   useEffect(() => {
@@ -115,24 +31,25 @@ export default function FlatlatesPage() {
     const loadFlatmates = async () => {
       setLoading(true)
       try {
-        // Try to fetch from Supabase first, fallback to mock data
+        // Fetch from Supabase database
         const { data, error } = await supabase
           .from('flatmates')
           .select('*')
           .order('created_at', { ascending: false })
 
-        if (error || !data || data.length === 0) {
-          // Use mock data if Supabase is not configured or has no data
-          setFlatmates(mockFlatmates)
-          setFilteredFlatmates(mockFlatmates)
-        } else {
-          setFlatmates(data)
-          setFilteredFlatmates(data)
+        if (error) {
+          throw new Error(`Database error: ${error.message}`)
         }
-      } catch {
-        // Fallback to mock data if there's any error
-        setFlatmates(mockFlatmates)
-        setFilteredFlatmates(mockFlatmates)
+
+        // Use real data from database (empty array if no data)
+        setFlatmates(data || [])
+        setFilteredFlatmates(data || [])
+      } catch (err) {
+        console.error('Error loading flatmates:', err)
+        setError('Failed to load flatmates. Please try again.')
+        // Show empty state instead of mock data
+        setFlatmates([])
+        setFilteredFlatmates([])
       } finally {
         setLoading(false)
       }
@@ -200,7 +117,7 @@ export default function FlatlatesPage() {
           {/* Page Title */}
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Find your perfect <span className="text-blue-600">flatmate</span>
+              Find your perfect <span className="text-purple-500">flatmate</span>
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Connect with verified professionals looking for shared accommodation
@@ -218,7 +135,7 @@ export default function FlatlatesPage() {
                   placeholder="Search by name, company, or location..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 h-14 text-lg border-gray-200 focus:border-blue-500 rounded-xl bg-gray-50 focus:bg-white transition-colors"
+                  className="pl-12 h-14 text-lg border-gray-200 focus:border-purple-500 rounded-xl bg-gray-50 focus:bg-white transition-colors"
                 />
               </div>
             </div>
@@ -247,8 +164,8 @@ export default function FlatlatesPage() {
                     onClick={() => setSelectedFilter(filter.key)}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 text-sm ${
                       selectedFilter === filter.key 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md transform scale-105' 
-                        : 'bg-white hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 border-gray-200'
+                        ? 'bg-purple-500 text-white hover:bg-purple-800 shadow-md transform scale-105' 
+                        : 'bg-white hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 border-gray-200'
                     }`}
                   >
                     {filter.icon}
@@ -261,7 +178,7 @@ export default function FlatlatesPage() {
               {/* Active filter indicator */}
               {selectedFilter !== 'all' && (
                 <div className="mt-4 text-center">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                     Showing: {[
                       { key: 'male', label: 'Male profiles' },
                       { key: 'female', label: 'Female profiles' },
@@ -302,7 +219,7 @@ export default function FlatlatesPage() {
             <div className="mb-8">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <p className="text-gray-700 font-medium text-center">
-                  <span className="text-blue-600 font-bold text-lg">{filteredFlatmates.length}</span>
+                  <span className="text-purple-500 font-bold text-lg">{filteredFlatmates.length}</span>
                   {' '}{filteredFlatmates.length === 1 ? 'profile' : 'profiles'} found
                   {searchQuery && (
                     <span className="ml-1 text-gray-600">
@@ -363,7 +280,7 @@ export default function FlatlatesPage() {
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
               Create your profile and let others discover you. It&apos;s free and takes less than 5 minutes.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold">
+            <Button className="bg-purple-500 hover:bg-purple-800 text-white px-8 py-3 rounded-xl font-semibold">
               Create Your Profile
             </Button>
           </div>
@@ -374,7 +291,7 @@ export default function FlatlatesPage() {
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-blue-600 mb-4">Roomvia</h2>
+            <h2 className="text-2xl font-bold text-purple-500 mb-4">Roomvia</h2>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
               Find your perfect room or flatmate with ease. Connect with verified landlords and tenants across India.
             </p>

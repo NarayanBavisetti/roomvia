@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { 
   MapPin, 
   Building2, 
-  Heart, 
+  Bookmark, 
   Wifi, 
   Car, 
   Dumbbell,
@@ -16,7 +16,8 @@ import {
   Wind,
   Coffee,
   TreePine,
-  Utensils
+  Utensils,
+  MessageCircle
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
@@ -54,10 +55,15 @@ const getFoodIcon = (preference: string) => {
 }
 
 export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps) {
-  const [isLiked, setIsLiked] = useState(false)
+  const [,] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
+  // Defensive defaults for optional fields
+  const amenities: string[] = Array.isArray(flatmate.amenities) ? flatmate.amenities : []
+  const preferredLocations: string[] = Array.isArray(flatmate.preferred_locations) ? flatmate.preferred_locations : []
 
   // Mock flatmate data - in real app this would be the actual user
   const flatmateEmail = `${flatmate.name.toLowerCase().replace(' ', '.')}@example.com`
@@ -72,9 +78,40 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
       return
     }
     
-    // Use the flatmate ID as the user ID for chat
-    openChat(flatmate.id, flatmateEmail)
+    // Use the user_id for chat, and flatmate.id as the flatmate context
+    if (flatmate.user_id) {
+      openChat(flatmate.user_id, flatmateEmail, undefined, flatmate.id)
+    } else {
+      console.error('Flatmate missing user_id, cannot open chat')
+    }
     onConnect?.()
+  }
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!user) {
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-login-modal'))
+      return
+    }
+    if (saving) return
+    setSaving(true)
+    const previous = isSaved
+    try {
+      setIsSaved(!previous)
+      const { savesApi } = await import('@/lib/saves')
+      const { saved, error } = await savesApi.toggleSave('person', flatmate.id)
+      if (error) {
+        console.error('Save toggle failed:', error)
+        setIsSaved(previous)
+      } else {
+        setIsSaved(saved)
+      }
+    } catch (e) {
+      console.error('Save toggle failed:', e)
+      setIsSaved(previous)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -102,19 +139,13 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
             )}
           </div>
 
-          {/* Heart icon */}
+          {/* Save icon */}
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsLiked(!isLiked)
-            }}
+            onClick={handleToggleSave}
+            aria-pressed={isSaved}
             className="absolute top-0 right-0 p-1 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm"
           >
-            <Heart 
-              className={`h-3 w-3 ${
-                isLiked ? 'text-red-500 fill-current' : 'text-gray-600'
-              }`} 
-            />
+            <Bookmark className={`h-3 w-3 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />
           </button>
 
           {/* Name and basic info */}
@@ -130,7 +161,7 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
         {/* Company + Budget Row */}
         <div className="flex items-center justify-between mb-3">
-          <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 flex items-center">
+          <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 flex items-center">
             <Building2 className="h-2.5 w-2.5 mr-1" />
             {flatmate.company}
           </Badge>
@@ -169,10 +200,10 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
         </div>
 
         {/* Amenities - Compact icons only */}
-        {flatmate.amenities.length > 0 && (
+        {amenities.length > 0 && (
           <div className="mb-3">
             <div className="flex items-center justify-center gap-1">
-              {flatmate.amenities.slice(0, 5).map((amenity, index) => (
+              {amenities.slice(0, 5).map((amenity, index) => (
                 <div
                   key={index}
                   className="p-1.5 bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
@@ -181,9 +212,9 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
                   {amenityIcons[amenity] || <Home className="h-3 w-3" />}
                 </div>
               ))}
-              {flatmate.amenities.length > 5 && (
+              {amenities.length > 5 && (
                 <div className="text-xs text-gray-500 ml-1">
-                  +{flatmate.amenities.length - 5}
+                  +{amenities.length - 5}
                 </div>
               )}
             </div>
@@ -191,14 +222,14 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
         )}
 
         {/* Preferred locations - Compact */}
-        {flatmate.preferred_locations.length > 0 && (
+        {preferredLocations.length > 0 && (
           <div className="mb-3">
             <div className="flex items-center justify-center mb-1">
               <MapPin className="h-3 w-3 text-gray-400 mr-1" />
               <span className="text-xs text-gray-500">Prefers</span>
             </div>
             <div className="flex flex-wrap justify-center gap-1">
-              {flatmate.preferred_locations.slice(0, 2).map((location, index) => (
+              {preferredLocations.slice(0, 2).map((location, index) => (
                 <Badge 
                   key={index}
                   variant="outline" 
@@ -207,24 +238,25 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
                   {location.length > 12 ? location.substring(0, 12) + '...' : location}
                 </Badge>
               ))}
-              {flatmate.preferred_locations.length > 2 && (
+              {preferredLocations.length > 2 && (
                 <Badge 
                   variant="outline" 
                   className="text-xs px-1.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600"
                 >
-                  +{flatmate.preferred_locations.length - 2}
+                  +{preferredLocations.length - 2}
                 </Badge>
               )}
             </div>
           </div>
         )}
 
-        {/* Connect button */}
+        {/* Chat button */}
         <Button 
           onClick={handleConnect}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 text-sm rounded-lg transition-colors"
+          className="w-full bg-purple-500 hover:bg-purple-800 text-white font-medium py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          Connect
+          <MessageCircle className="h-4 w-4" />
+          Chat
         </Button>
       </div>
     </div>
