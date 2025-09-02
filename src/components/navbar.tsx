@@ -283,7 +283,13 @@ export default function Navbar() {
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Saved</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/my-listings')
+                    }}
+                    className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
                     <div className="flex items-center gap-2 w-full">
                       <div className="p-1.5 rounded-md bg-green-50 group-hover:bg-green-100 transition-colors">
                         <FileText className="h-4 w-4 text-green-600" />
@@ -435,7 +441,14 @@ export default function Navbar() {
                       <UserIcon className="mr-2 h-4 w-4" />
                       Profile
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start font-medium">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start font-medium"
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        router.push('/my-listings')
+                      }}
+                    >
                       My Listings
                     </Button>
                     <Button 

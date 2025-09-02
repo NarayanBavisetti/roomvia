@@ -451,13 +451,13 @@ export default function AddListingPage() {
       {/* Fullscreen Layout with Toggle */}
       <main className="h-screen flex flex-col pt-16">
         {/* Header Bar */}
-        <div className="bg-white border-b border-gray-200/60 shadow-sm">
+        <div className="bg-gray-50">
           <div className="max-w-5xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               {/* Toggle Tabs - Refined Design */}
               <div className="flex items-center">
                 <div
-                  className="bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-xs"
+                  className="bg-white rounded-xl p-1 border border-gray-200 shadow-sm"
                   role="tablist"
                   aria-label="Listing input mode"
                 >
@@ -515,11 +515,11 @@ export default function AddListingPage() {
         <div className="flex-1 overflow-hidden">
           {activeTab === 'ai' ? (
             /* AI Listing Creator View */
-            <div className="h-full overflow-y-auto bg-gray-50/30">
+            <div className="h-full overflow-y-auto bg-gray-50">
               <div className="max-w-4xl mx-auto p-6">                
                 <div className="space-y-6">
                   {/* AI Input Section */}
-                  <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                  <Card className="shadow-sm border-gray-200 bg-white">
                     <CardContent className="p-6">
                       <div className="space-y-5">
                         <div>
@@ -528,7 +528,7 @@ export default function AddListingPage() {
                           </h3>
                           
                           {/* Input Type Toggle */}
-                          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 max-w-sm">
+                          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full sm:max-w-md">
                             <button
                               type="button"
                               onClick={() => setInputType('text')}
@@ -613,7 +613,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                           <Button
                             onClick={handleAutoFill}
                             disabled={!canGenerate || isProcessing}
-                            className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+                            className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             {isProcessing ? (
                               <>
@@ -637,13 +637,13 @@ URGENT: Male Flatmate Needed | Move-in immediately
             </div>
           ) : (
             /* Manual Form View */
-            <div className="h-full overflow-y-auto bg-gray-50/30">
+            <div className="h-full overflow-y-auto bg-gray-50">
               <div className="max-w-6xl mx-auto p-6">
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left Column */}
                   <div className="space-y-5">
                     {/* Basic Information */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <Card className="shadow-sm border-gray-200 bg-white">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Property Details</CardTitle>
                       </CardHeader>
@@ -773,7 +773,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Pricing */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <Card className="shadow-sm border-gray-200 bg-white">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                           <DollarSign className="h-5 w-5 text-purple-500" />
@@ -835,7 +835,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   {/* Right Column */}
                   <div className="space-y-5">
                     {/* Highlights/Amenities */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <Card className="shadow-sm border-gray-200 bg-white">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Highlights & Amenities</CardTitle>
                       </CardHeader>
@@ -874,7 +874,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Flatmate Preferences */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <Card className="shadow-sm border-gray-200 bg-white">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Flatmate Preferences</CardTitle>
                       </CardHeader>
@@ -947,7 +947,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Contact & Images */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+                    <Card className="shadow-sm border-gray-200 bg-white">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Contact & Images</CardTitle>
                       </CardHeader>

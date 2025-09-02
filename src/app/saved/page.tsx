@@ -339,41 +339,6 @@ export default function SavedPage() {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* Quick Actions */}
-        <Card className="mt-8 shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/'}
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Browse Properties
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/profile'}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                View Profile
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/add-listing'}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Add Listing
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   )

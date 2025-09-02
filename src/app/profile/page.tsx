@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const [isSaving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [supportsName, setSupportsName] = useState(true)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -38,42 +39,67 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return
-      
+
       try {
-        // Load or bootstrap profile
-        const { data: prof, error: profErr } = await supabase
+        // First try selecting with name column
+        let profQuery = await supabase
           .from('profiles')
           .select('name, account_type, locked')
           .eq('user_id', user.id)
           .maybeSingle()
 
-        if (profErr) {
-          // Try to create if missing
-          const { data: newProf, error: createErr } = await supabase
-            .from('profiles')
-            .insert({ 
-              user_id: user.id, 
-              name: null,
-              account_type: 'normal', 
-              locked: false 
-            })
-            .select('name, account_type, locked')
-            .single()
-          
-          if (createErr) {
-            setError('Failed to create profile')
-          } else if (newProf) {
-            setProfile({
-              name: newProf.name || '',
-              account_type: (newProf.account_type as 'normal' | 'broker') || 'normal',
-              locked: !!newProf.locked
-            })
+        if (profQuery.error) {
+          // If name column does not exist, fall back without it
+          const msg = String(profQuery.error.message || '')
+          if (msg.toLowerCase().includes("'name' column") || msg.toLowerCase().includes('name') ) {
+            setSupportsName(false)
+            profQuery = await supabase
+              .from('profiles')
+              .select('account_type, locked')
+              .eq('user_id', user.id)
+              .maybeSingle()
+          } else {
+            console.error('Profile query error:', profQuery.error)
           }
-        } else if (prof) {
+        }
+
+        if (profQuery.data) {
+          const prof: any = profQuery.data
           setProfile({
-            name: prof.name || '',
+            name: (supportsName ? (prof.name || '') : ''),
             account_type: (prof.account_type as 'normal' | 'broker') || 'normal',
-            locked: !!prof.locked
+            locked: !!prof.locked,
+          })
+          return
+        }
+
+        // No profile exists → bootstrap a default one (omit name when unsupported)
+        const insertPayload: any = {
+          user_id: user.id,
+          account_type: 'normal',
+          locked: false,
+        }
+        if (supportsName) insertPayload.name = null
+
+        const selectColumns = supportsName ? 'name, account_type, locked' : 'account_type, locked'
+
+        const { data: newProf, error: createErr } = await supabase
+          .from('profiles')
+          .insert(insertPayload)
+          .select(selectColumns)
+          .single()
+
+        if (createErr) {
+          setError(createErr.message || 'Failed to create profile')
+          return
+        }
+
+        if (newProf) {
+          const np: any = newProf
+          setProfile({
+            name: (supportsName ? (np.name || '') : ''),
+            account_type: (np.account_type as 'normal' | 'broker') || 'normal',
+            locked: !!np.locked,
           })
         }
       } catch (err) {
@@ -83,7 +109,7 @@ export default function ProfilePage() {
     }
 
     loadProfile()
-  }, [user])
+  }, [user, supportsName])
 
   const handleSaveProfile = async () => {
     if (!user) return
@@ -93,15 +119,17 @@ export default function ProfilePage() {
     setSuccess('')
 
     try {
+      const payload: any = {
+        user_id: user.id,
+        account_type: profile.account_type,
+        locked: profile.locked,
+        updated_at: new Date().toISOString(),
+      }
+      if (supportsName) payload.name = profile.name || null
+
       const { error: updateErr } = await supabase
         .from('profiles')
-        .upsert({ 
-          user_id: user.id, 
-          name: profile.name || null,
-          account_type: profile.account_type,
-          locked: profile.locked,
-          updated_at: new Date().toISOString() 
-        })
+        .upsert(payload)
 
       if (updateErr) {
         setError(updateErr.message)
@@ -125,15 +153,17 @@ export default function ProfilePage() {
     setError('')
 
     try {
+      const payload: any = {
+        user_id: user.id,
+        account_type: profile.account_type,
+        locked: true,
+        updated_at: new Date().toISOString(),
+      }
+      if (supportsName) payload.name = profile.name || null
+
       const { error: updateErr } = await supabase
         .from('profiles')
-        .upsert({ 
-          user_id: user.id, 
-          name: profile.name || null,
-          account_type: profile.account_type,
-          locked: true,
-          updated_at: new Date().toISOString() 
-        })
+        .upsert(payload)
 
       if (updateErr) {
         setError(updateErr.message)
@@ -321,41 +351,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Quick Actions */}
-        <Card className="mt-6 shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/saved'}
-              >
-                <User className="h-4 w-4 mr-2" />
-                View Saved Items
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/add-listing'}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Add New Listing
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start border-gray-300"
-                onClick={() => window.location.href = '/'}
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Browse Properties
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   )
