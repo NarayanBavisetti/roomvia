@@ -259,7 +259,7 @@ export default function Home() {
             <div className="sticky top-28">
               {/* Map Search Box - Above the map */}
               <div className="mb-4">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex items-center h-12 px-4 gap-3">
+                <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/70 flex items-center h-12 px-4 gap-3">
                   <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
                   <input
                     type="text"
@@ -292,7 +292,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-white/90 backdrop-blur-sm border-t border-gray-200/50 mt-16">
+      <footer className="relative bg-white/95 backdrop-blur-sm border-t border-gray-200/70 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-purple-500 mb-4">Roomvia</h2>

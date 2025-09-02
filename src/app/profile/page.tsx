@@ -3,20 +3,31 @@
 import { useEffect, useState } from 'react'
 import Navbar from '@/components/navbar'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { savesApi, type SaveItem } from '@/lib/saves'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { User, Settings, Shield, CheckCircle } from 'lucide-react'
+
+interface Profile {
+  name: string | null
+  account_type: 'normal' | 'broker'
+  locked: boolean
+}
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
-  const [flats, setFlats] = useState<SaveItem[]>([])
-  const [people, setPeople] = useState<SaveItem[]>([])
+  const [profile, setProfile] = useState<Profile>({
+    name: '',
+    account_type: 'normal',
+    locked: false
+  })
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [accountType, setAccountType] = useState<'normal' | 'broker'>('normal')
-  const [locked, setLocked] = useState(false)
-  const [savingType, setSavingType] = useState(false)
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,121 +36,327 @@ export default function ProfilePage() {
   }, [user, loading])
 
   useEffect(() => {
-    const load = async () => {
+    const loadProfile = async () => {
       if (!user) return
-      // Load or bootstrap profile
-      const { data: prof, error: profErr } = await supabase
-        .from('profiles')
-        .select('account_type, locked')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (profErr) {
-        // try to create if missing
-        await supabase.from('profiles').insert({ user_id: user.id, account_type: 'normal', locked: false }).select().maybeSingle()
-      } else if (prof) {
-        setAccountType((prof.account_type as 'normal' | 'broker') || 'normal')
-        setLocked(!!prof.locked)
+      
+      try {
+        // Load or bootstrap profile
+        const { data: prof, error: profErr } = await supabase
+          .from('profiles')
+          .select('name, account_type, locked')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (profErr) {
+          // Try to create if missing
+          const { data: newProf, error: createErr } = await supabase
+            .from('profiles')
+            .insert({ 
+              user_id: user.id, 
+              name: null,
+              account_type: 'normal', 
+              locked: false 
+            })
+            .select('name, account_type, locked')
+            .single()
+          
+          if (createErr) {
+            setError('Failed to create profile')
+          } else if (newProf) {
+            setProfile({
+              name: newProf.name || '',
+              account_type: (newProf.account_type as 'normal' | 'broker') || 'normal',
+              locked: !!newProf.locked
+            })
+          }
+        } else if (prof) {
+          setProfile({
+            name: prof.name || '',
+            account_type: (prof.account_type as 'normal' | 'broker') || 'normal',
+            locked: !!prof.locked
+          })
+        }
+      } catch (err) {
+        setError('Failed to load profile')
+        console.error('Profile load error:', err)
       }
-      const [sf, sp] = await Promise.all([
-        savesApi.listSaves('flat'),
-        savesApi.listSaves('person')
-      ])
-      if (sf.error || sp.error) {
-        setError(sf.error?.message || sp.error?.message || 'Failed to load saves')
-      }
-      setFlats(sf.items)
-      setPeople(sp.items)
     }
-    load()
+
+    loadProfile()
   }, [user])
 
-  const handleConfirmAccountType = async () => {
-    if (!user || locked) return
-    setSavingType(true)
+  const handleSaveProfile = async () => {
+    if (!user) return
+    
+    setSaving(true)
+    setError('')
+    setSuccess('')
+
     try {
-      const { error: updErr } = await supabase
+      const { error: updateErr } = await supabase
         .from('profiles')
-        .upsert({ user_id: user.id, account_type: accountType, locked: true, updated_at: new Date().toISOString() })
-      if (updErr) {
-        setError(updErr.message)
+        .upsert({ 
+          user_id: user.id, 
+          name: profile.name || null,
+          account_type: profile.account_type,
+          locked: profile.locked,
+          updated_at: new Date().toISOString() 
+        })
+
+      if (updateErr) {
+        setError(updateErr.message)
       } else {
-        setLocked(true)
+        setSuccess('Profile updated successfully!')
+        setIsEditing(false)
+        setTimeout(() => setSuccess(''), 3000)
       }
+    } catch (err) {
+      setError('Failed to update profile')
+      console.error('Profile update error:', err)
     } finally {
-      setSavingType(false)
+      setSaving(false)
     }
+  }
+
+  const handleLockAccountType = async () => {
+    if (!user || profile.locked) return
+    
+    setSaving(true)
+    setError('')
+
+    try {
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .upsert({ 
+          user_id: user.id, 
+          name: profile.name || null,
+          account_type: profile.account_type,
+          locked: true,
+          updated_at: new Date().toISOString() 
+        })
+
+      if (updateErr) {
+        setError(updateErr.message)
+      } else {
+        setProfile(prev => ({ ...prev, locked: true }))
+        setSuccess('Account type locked successfully!')
+        setTimeout(() => setSuccess(''), 3000)
+      }
+    } catch (err) {
+      setError('Failed to lock account type')
+      console.error('Account lock error:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login required</h1>
+              <p className="text-gray-600 mb-6">Please login to view your profile.</p>
+              <Button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('open-login-modal'))
+                  }
+                }}
+                className="bg-purple-500 hover:bg-purple-600"
+              >
+                Open Login
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <h1 className="text-2xl font-semibold mb-6">Profile</h1>
-        {/* Account Type */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Account type</p>
-              <div className="flex items-center gap-3">
-                <Select value={accountType} onValueChange={(v: 'normal' | 'broker') => setAccountType(v)} disabled={locked}>
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
+          <p className="text-gray-600">Manage your account information and preferences</p>
+        </div>
+
+        {/* Status Messages */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600 text-sm flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {success}
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Personal Information */}
+          <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-purple-500" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="mt-1 bg-gray-50 border-gray-300"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              </div>
+
+              <div>
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={profile.name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                  disabled={!isEditing}
+                  placeholder="Enter your full name"
+                  className="mt-1 border-gray-300"
+                />
+              </div>
+
+              <div className="pt-2">
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                      className="bg-purple-500 hover:bg-purple-600"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    variant="outline"
+                    className="border-gray-300"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Account Type */}
+          <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-purple-500" />
+                Account Type
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Current Account Type</Label>
+                <Select 
+                  value={profile.account_type} 
+                  onValueChange={(v: 'normal' | 'broker') => setProfile(prev => ({ ...prev, account_type: v }))}
+                  disabled={profile.locked}
+                >
+                  <SelectTrigger className="mt-1 border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="normal">Normal User</SelectItem>
                     <SelectItem value="broker">Broker</SelectItem>
                   </SelectContent>
                 </Select>
-                {!locked ? (
-                  <Button size="sm" onClick={handleConfirmAccountType} disabled={savingType} className="bg-purple-600 hover:bg-purple-900">
-                    {savingType ? 'Saving...' : 'Confirm (one-time)'}
-                  </Button>
-                ) : (
-                  <span className="text-xs text-gray-500">Locked. Contact support to change.</span>
+                
+                {profile.locked && (
+                  <p className="text-xs text-gray-500 mt-1 flex items-center">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Account type is locked. Contact support to change.
+                  </p>
                 )}
               </div>
-            </div>
-          </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Account Type Benefits</h4>
+                <div className="space-y-1 text-xs text-blue-700">
+                  <p><strong>Normal:</strong> Search and save properties, connect with flatmates</p>
+                  <p><strong>Broker:</strong> List multiple properties, advanced analytics</p>
+                </div>
+              </div>
+
+              {!profile.locked && (
+                <Button
+                  onClick={handleLockAccountType}
+                  disabled={isSaving}
+                  className="w-full bg-purple-500 hover:bg-purple-600"
+                >
+                  {isSaving ? 'Locking...' : 'Lock Account Type (One-time)'}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        <h2 className="text-xl font-semibold mb-3">Your Saved Items</h2>
-        {error && (
-          <div className="mb-4 text-red-600">{error}</div>
-        )}
-        <Tabs defaultValue="flats" className="w-full">
-          <TabsList>
-            <TabsTrigger value="flats">Saved Flats</TabsTrigger>
-            <TabsTrigger value="people">Saved People</TabsTrigger>
-          </TabsList>
-          <TabsContent value="flats" className="mt-4">
-            {flats.length === 0 ? (
-              <div className="text-gray-500">No saved flats yet.</div>
-            ) : (
-              <ul className="space-y-2">
-                {flats.map(s => (
-                  <li key={s.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <span className="text-sm">Flat ID: {s.target_id}</span>
-                    <Button size="sm" variant="outline" onClick={async () => { await savesApi.toggleSave('flat', s.target_id); setFlats(prev => prev.filter(i => i.id !== s.id)) }}>Remove</Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </TabsContent>
-          <TabsContent value="people" className="mt-4">
-            {people.length === 0 ? (
-              <div className="text-gray-500">No saved people yet.</div>
-            ) : (
-              <ul className="space-y-2">
-                {people.map(s => (
-                  <li key={s.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <span className="text-sm">User ID: {s.target_id}</span>
-                    <Button size="sm" variant="outline" onClick={async () => { await savesApi.toggleSave('person', s.target_id); setPeople(prev => prev.filter(i => i.id !== s.id)) }}>Remove</Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </TabsContent>
-        </Tabs>
+
+        {/* Quick Actions */}
+        <Card className="mt-6 shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Button 
+                variant="outline" 
+                className="justify-start border-gray-300"
+                onClick={() => window.location.href = '/saved'}
+              >
+                <User className="h-4 w-4 mr-2" />
+                View Saved Items
+              </Button>
+              <Button 
+                variant="outline" 
+                className="justify-start border-gray-300"
+                onClick={() => window.location.href = '/add-listing'}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Add New Listing
+              </Button>
+              <Button 
+                variant="outline" 
+                className="justify-start border-gray-300"
+                onClick={() => window.location.href = '/'}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Browse Properties
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
 }
-
-
