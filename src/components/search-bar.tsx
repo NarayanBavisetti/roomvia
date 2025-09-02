@@ -28,6 +28,37 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     loadStates()
   }, [])
 
+  // Set default values after states are loaded
+  React.useEffect(() => {
+    const setDefaults = async () => {
+      if (states.length > 0 && !selectedState) {
+        // Find Telangana state
+        const telanganaState = states.find(state => state.name.toLowerCase() === 'telangana')
+        if (telanganaState) {
+          setSelectedState(telanganaState)
+          setStateQuery('Telangana')
+          
+          // Load areas for Telangana
+          setIsLoadingAreas(true)
+          const areasData = await fetchAreas(telanganaState.id)
+          setAreas(areasData)
+          setIsLoadingAreas(false)
+          
+          // Find Hyderabad area
+          const hyderabadArea = areasData.find(area => area.name.toLowerCase() === 'hyderabad')
+          if (hyderabadArea) {
+            setSelectedArea(hyderabadArea)
+            setAreaQuery('Hyderabad')
+            // Auto-trigger search with defaults
+            onSearch?.(telanganaState, hyderabadArea)
+          }
+        }
+      }
+    }
+    
+    setDefaults()
+  }, [states, selectedState, onSearch])
+
   const loadStates = async () => {
     setIsLoadingStates(true)
     const statesData = await fetchStates()

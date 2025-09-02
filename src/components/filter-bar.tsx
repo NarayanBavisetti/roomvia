@@ -354,8 +354,8 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     const maxPercent = getPercentage(localRange[1])
 
     return (
-      <div className="p-4 space-y-4">
-        <h4 className="font-medium text-gray-900">Select Range</h4>
+      <div>
+        <div className="px-5 py-4 space-y-4">
         
         {/* Price inputs */}
         <div className="flex items-center gap-4">
@@ -425,26 +425,28 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-between pt-2">
-                     <button
-             onClick={() => {
-               setLocalRange([6899, 200000])
-               handleBudgetChange([6899, 200000])
-               setOpenDropdown(null)
-             }}
-             className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-           >
-             Clear
-           </button>
-           <button
-             onClick={() => {
-               handleBudgetChange(localRange)
-               setOpenDropdown(null)
-             }}
-             className="px-4 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition-colors"
-           >
-            Save
+        </div>
+        
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+          <button
+            onClick={() => {
+              setLocalRange([6899, 200000])
+              handleBudgetChange([6899, 200000])
+              setOpenDropdown(null)
+            }}
+            className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
+          >
+            Clear All
+          </button>
+          <button
+            onClick={() => {
+              handleBudgetChange(localRange)
+              setOpenDropdown(null)
+            }}
+            className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
+          >
+            Apply
           </button>
         </div>
       </div>
@@ -474,12 +476,11 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
         ref={containerRef}
         className={`w-full transition-all duration-200 ease-out ${
           isSticky 
-            ? 'fixed top-0 left-0 right-0 z-[9999] bg-white shadow-sm border-b border-gray-100' 
+            ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100' 
             : 'relative z-10'
         }`}
         style={{
-          transform: isSticky ? 'translateZ(0)' : 'none', // Force hardware acceleration
-          willChange: 'transform, position' // Optimize for animations
+          pointerEvents: 'auto'
         }}
       >
         <div 
@@ -498,7 +499,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
             }`}>
               <div className="flex items-center gap-3 flex-1">
               {filters.map((filter) => (
-                <div key={filter.id} className="relative z-[99998]">
+                <div key={filter.id} className="relative z-20">
                   <button
                     onClick={(e) => {
                       e.preventDefault()
@@ -527,14 +528,14 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                           minWidth: filter.id === 'budget' ? '320px' : '280px',
                           maxHeight: '400px',
                           overflowY: 'auto',
-                          zIndex: 99999
+                          zIndex: 100
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
                                                  {filter.hasCustomDropdown && filter.id === 'budget' ? (
                            <BudgetRangeSlider />
                          ) : (
-                           <div className="p-4">
+                           <div className="px-5 py-4">
                              <div className="flex flex-wrap gap-2">
                                {filter.options?.map((option) => (
                           <button
@@ -544,9 +545,9 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                                      e.stopPropagation()
                                      toggleFilter(filter.id, option)
                                    }}
-                                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+                                   className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
                                 activeFilters[filter.id]?.includes(option)
-                                       ? 'bg-purple-500 text-white border-purple-500 shadow-md transform scale-105'
+                                       ? 'bg-purple-500 text-white border-purple-500 shadow-md'
                                        : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
                               }`}
                           >
@@ -563,7 +564,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
               </div>
 
                              <div className="flex items-center gap-3">
-                 <div className="relative z-[99998]">
+                 <div className="relative z-20">
                    <button
                      onClick={(e) => {
                        e.preventDefault()
@@ -590,76 +591,75 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
                   {openDropdown === 'more' && (
                     <div 
-                      className="absolute right-0 bg-white border border-gray-200 rounded-xl shadow-2xl w-[600px] max-h-[600px] overflow-y-auto"
+                      className="absolute right-0 bg-white border border-gray-200 rounded-lg shadow-xl w-[480px]"
                       style={{
                         top: '100%',
                         marginTop: '8px',
-                        zIndex: 99999
+                        zIndex: 100,
+                        maxHeight: '520px'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                       <div className="p-8">
-                         <div className="flex items-center justify-between mb-8">
-                           <h3 className="text-xl font-semibold text-gray-900">Filters</h3>
-                           <button
-                             onClick={() => setOpenDropdown(null)}
-                             className="p-2 hover:bg-gray-50 rounded-full transition-colors"
-                           >
-                             <X className="h-5 w-5 text-gray-400" />
-                           </button>
-                         </div>
-                         
-                         <div className="space-y-10">
-                           {Object.entries(moreFilters).map(([categoryKey, category]) => (
-                             <div key={categoryKey} className="space-y-5">
-                               <h4 className="text-lg font-medium text-gray-900 mb-4">{category.label}</h4>
-                               
-                               <div className="flex flex-wrap gap-3">
-                                 {category.options.map((option) => {
-                                   const isSelected = moreFiltersState[categoryKey]?.includes(option.id) || false
-                                   return (
-                                     <button
-                                       key={option.id}
-                                       onClick={(e) => {
-                                         e.preventDefault()
-                                         e.stopPropagation()
-                                         toggleMoreFilter(categoryKey, option.id)
-                                       }}
-                                       className={`px-5 py-3 rounded-full text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
-                                         isSelected
-                                           ? 'bg-purple-500 text-white border-purple-500 shadow-lg transform scale-105'
-                                           : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:shadow-md'
-                                       }`}
-                                     >
-                                       {option.label}
-                                     </button>
-                                   )
-                                 })}
-                               </div>
-                             </div>
-                           ))}
-            </div>
+                      {/* Header */}
+                      <div className="px-5 py-4 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+                          <button onClick={() => setOpenDropdown(null)} className="p-1.5 hover:bg-gray-50 rounded-full transition-colors">
+                            <X className="h-4 w-4 text-gray-400" />
+                          </button>
+                        </div>
+                      </div>
 
-                         {/* Action buttons */}
-                         <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-100">
-                           <button
-                             onClick={() => {
-                               setMoreFiltersState({})
-                               onFiltersChange?.(activeFilters)
-                             }}
-                             className="px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
-                           >
-                             Clear All
-                           </button>
-                           <button
-                             onClick={() => setOpenDropdown(null)}
-                             className="px-8 py-3 bg-purple-500 text-white text-sm font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                           >
-                             Apply Filters
-                           </button>
-                         </div>
-                       </div>
-                     </div>
+                      {/* Scrollable content */}
+                      <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'hidden' }} className="px-5 py-4 space-y-6">
+                        {Object.entries(moreFilters).map(([categoryKey, category]) => (
+                          <div key={categoryKey} className="space-y-3">
+                            <h4 className="text-base font-semibold text-gray-900">{category.label}</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {category.options.map((option) => {
+                                const isSelected = moreFiltersState[categoryKey]?.includes(option.id) || false
+                                return (
+                                  <button
+                                    key={option.id}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      toggleMoreFilter(categoryKey, option.id)
+                                    }}
+                                    className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
+                                      isSelected
+                                        ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                                        : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                                    }`}
+                                  >
+                                    {option.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+                        <button
+                          onClick={() => {
+                            setMoreFiltersState({})
+                            onFiltersChange?.(activeFilters)
+                          }}
+                          className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
+                        >
+                          Clear All
+                        </button>
+                        <button
+                          onClick={() => setOpenDropdown(null)}
+                          className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
+                        >
+                          Apply Filters
+                        </button>
+                      </div>
+                    </div>
             )}
         </div>
 
@@ -738,9 +738,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       <div 
         className="transition-all duration-200 ease-out overflow-hidden"
         style={{
-          height: isSticky ? `${barHeight}px` : '0px',
-          transform: 'translateZ(0)', // Force hardware acceleration
-          willChange: 'height'
+          height: isSticky ? `${barHeight}px` : '0px'
         }}
       />
 
@@ -748,7 +746,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       {openDropdown && (
         <div
           className="fixed inset-0"
-          style={{ zIndex: 99997 }}
+          style={{ zIndex: 40 }}
           onClick={() => setOpenDropdown(null)}
         />
       )}
