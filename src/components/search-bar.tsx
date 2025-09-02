@@ -106,15 +106,15 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       </div>
       
       {/* Clean Search Bar */}
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-full shadow-md border border-gray-200 p-1.5">
-          <div className="flex items-center gap-1">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-full shadow-lg border border-gray-200 py-1 px-1">
+          <div className="flex items-center gap-0">
             {/* State Section */}
             <div className="flex-1">
               <Popover open={stateOpen} onOpenChange={(open) => setStateOpen(open)}>
                 <PopoverTrigger asChild>
                   <div
-                    className="h-11 w-full rounded-full hover:bg-gray-50 border-0 px-3.5 cursor-text flex items-center"
+                    className="h-14 w-full rounded-full hover:bg-gray-50 border-0 px-6 cursor-text flex items-center"
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement
                       if (target.tagName !== 'INPUT') {
@@ -129,7 +129,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                     }}
                   >
                     <div className="text-left flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-900 mb-0.5">Where</div>
+                      <div className="text-xs font-semibold text-gray-800 mb-1">Where</div>
                       <input
                         type="text"
                         autoComplete="off"
@@ -144,7 +144,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                         disabled={isLoadingStates}
                       />
                     </div>
-                    <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
+                    <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0 mt-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -180,14 +180,14 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
             </div>
 
             {/* Separator */}
-            <div className="h-5 w-px bg-gray-300"></div>
+            <div className="h-12 w-px bg-gray-200 mx-1.5"></div>
 
             {/* Area Section */}
             <div className="flex-1">
               <Popover open={areaOpen} onOpenChange={(open) => setAreaOpen(open)}>
                 <PopoverTrigger asChild>
                   <div
-                    className="h-11 w-full rounded-full hover:bg-gray-50 border-0 px-3.5 cursor-text flex items-center"
+                    className="h-14 w-full rounded-full hover:bg-gray-50 border-0 px-6 cursor-text flex items-center"
                     onMouseDown={(e) => {
                       const target = e.target as HTMLElement
                       if (target.tagName !== 'INPUT') {
@@ -202,7 +202,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                     }}
                   >
                     <div className="text-left flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-900 mb-0.5">Area</div>
+                      <div className="text-xs font-semibold text-gray-800 mb-1">Area</div>
                       <input
                         type="text"
                         autoComplete="off"
@@ -219,7 +219,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                         disabled={!selectedState || isLoadingAreas}
                       />
                     </div>
-                    <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
+                    <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0 mt-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -262,7 +262,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               onClick={handleSearch}
               disabled={!selectedState || !selectedArea}
               size="icon"
-              className="h-11 w-11 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm hover:from-purple-600 hover:to-purple-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ml-1"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm hover:from-purple-600 hover:to-purple-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ml-0"
             >
               <Search className="h-5 w-5 text-primary-foreground" />
             </Button>
