@@ -11,10 +11,10 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import ImageGallery from '@/components/image-gallery'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
+import { useChat } from '@/contexts/chat-context'
 import {
   ArrowLeft,
   MapPin,
-  Home,
   Maximize,
   Building2,
   IndianRupee,
@@ -33,6 +33,7 @@ import {
 
 interface ListingDetail {
   id: string
+  user_id: string
   title: string
   property_type: string
   city: string
@@ -72,10 +73,11 @@ export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
+  const { openChat } = useChat()
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [, setCurrentImageIndex] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -114,7 +116,7 @@ export default function ListingDetailPage() {
           if (profileData) {
             profiles = profileData
           }
-        } catch (_) {
+        } catch {
           // Ignore profile errors and proceed with listing only
         }
 
@@ -130,19 +132,6 @@ export default function ListingDetailPage() {
     fetchListing()
   }, [listingId])
 
-  const handlePreviousImage = () => {
-    if (!listing?.images?.length) return
-    setCurrentImageIndex(prev => 
-      prev === 0 ? listing.images.length - 1 : prev - 1
-    )
-  }
-
-  const handleNextImage = () => {
-    if (!listing?.images?.length) return
-    setCurrentImageIndex(prev => 
-      prev === listing.images.length - 1 ? 0 : prev + 1
-    )
-  }
 
   // Autoplay for image slideshow
   useEffect(() => {
@@ -159,8 +148,14 @@ export default function ListingDetailPage() {
       router.push('/auth/login')
       return
     }
-    // TODO: Implement chat functionality
-    console.log('Starting chat with listing owner')
+    
+    if (!listing || !listing.profiles) {
+      console.error('Missing listing or profile data')
+      return
+    }
+    
+    // Open chat with the listing owner
+    openChat(listing.user_id, `user_${listing.user_id}`, listing.id)
   }
 
   const toggleLike = () => {
@@ -248,7 +243,6 @@ export default function ListingDetailPage() {
   }
 
   const images = listing.images || []
-  const currentImage = images[currentImageIndex]
 
   return (
     <div className="min-h-screen bg-gray-50">

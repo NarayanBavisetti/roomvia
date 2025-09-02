@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import FlatmateCard from '@/components/flatmate-card'
 import { supabase, type Flatmate } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
+import { showToast } from '@/lib/toast'
 
 const defaultFlatmate: Flatmate = {
   id: 'preview',
@@ -39,6 +39,7 @@ export default function CreateFlatmateProfilePage() {
   const router = useRouter()
   const { user, loading } = useAuth()
   const [loginPrompted, setLoginPrompted] = useState(false)
+  const [limitReached, setLimitReached] = useState(false)
 
   useEffect(() => setMounted(true), [])
 
@@ -51,6 +52,23 @@ export default function CreateFlatmateProfilePage() {
       }
     }
   }, [user, loading, loginPrompted])
+
+  // Check limit: one profile per user
+  useEffect(() => {
+    const checkLimit = async () => {
+      if (!user) return
+      const { count, error } = await supabase
+        .from('flatmates')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      if (!error && (count || 0) > 0) {
+        setLimitReached(true)
+      } else {
+        setLimitReached(false)
+      }
+    }
+    checkLimit()
+  }, [user])
 
   if (!mounted) return null
   if (!loading && !user) {
@@ -103,6 +121,16 @@ export default function CreateFlatmateProfilePage() {
     e.preventDefault()
     setSubmitError('')
 
+    if (!user) {
+      setSubmitError('Please login to create a profile.')
+      return
+    }
+
+    if (limitReached) {
+      setSubmitError('You already have a profile. Upgrade to add more (coming soon).')
+      return
+    }
+
     // Basic validation to satisfy NOT NULL constraints
     if (!flatmate.name.trim()) return setSubmitError('Please enter your name.')
     if (!flatmate.company.trim()) return setSubmitError('Please enter your company.')
@@ -113,6 +141,7 @@ export default function CreateFlatmateProfilePage() {
     setSubmitting(true)
     try {
       const { error } = await supabase.from('flatmates').insert({
+        user_id: user.id,
         name: flatmate.name.trim(),
         age: flatmate.age,
         gender: flatmate.gender,
@@ -122,6 +151,8 @@ export default function CreateFlatmateProfilePage() {
         non_smoker: flatmate.non_smoker,
         food_preference: flatmate.food_preference,
         gated_community: flatmate.gated_community,
+        city: (flatmate.city || '').trim(),
+        state: (flatmate.state || '').trim(),
         amenities: flatmate.amenities || [],
         preferred_locations: flatmate.preferred_locations || [],
         image_url: flatmate.image_url || null,
@@ -132,9 +163,11 @@ export default function CreateFlatmateProfilePage() {
         return
       }
 
+      showToast('Your profile has been created.', { variant: 'success' })
       router.push('/flatmates')
     } catch (err) {
       setSubmitError('Unexpected error. Please try again.')
+      showToast('Failed to create profile. Please try again.', { variant: 'error' })
       console.error(err)
     } finally {
       setSubmitting(false)
@@ -145,61 +178,102 @@ export default function CreateFlatmateProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-3xl mx-auto">
           {/* Form */}
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10 space-y-7">
-            <h1 className="text-2xl font-semibold">Create your profile</h1>
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h1 className="text-2xl font-semibold mb-4">Create your profile</h1>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" value={flatmate.name} onChange={e => update('name', e.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-lg" />
+            {limitReached && (
+              <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 text-purple-800 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">You can create one profile per account.</p>
+                  <button type="button" className="px-3 py-1.5 text-sm rounded-md bg-purple-600 text-white cursor-not-allowed opacity-80" title="Paid feature coming soon" disabled>
+                    Upgrade (coming soon)
+                  </button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="age">Age</Label>
-                <Input id="age" type="number" value={flatmate.age} onChange={e => update('age', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
+            )}
+
+            {/* Single-page grid with comfortable spacing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Column 1 */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" value={flatmate.name} onChange={e => update('name', e.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-lg" />
+                </div>
+                <div>
+                  <Label htmlFor="company">Company</Label>
+                  <Input id="company" value={flatmate.company} onChange={e => update('company', e.target.value)} placeholder="Company" className="mt-2 h-11 rounded-lg" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="age">Age</Label>
+                    <Input id="age" type="number" value={flatmate.age} onChange={e => update('age', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
+                  </div>
+                  <div>
+                    <Label>Gender</Label>
+                    <Select value={flatmate.gender} onValueChange={v => update('gender', v)}>
+                      <SelectTrigger className="mt-2 h-11 rounded-lg"><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label>Gender</Label>
-                <Select value={flatmate.gender} onValueChange={v => update('gender', v)}>
-                  <SelectTrigger className="mt-2 h-11 rounded-lg"><SelectValue placeholder="Select gender" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {/* Column 2 */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" value={flatmate.city || ''} onChange={e => update('city' as keyof typeof flatmate, e.target.value)} placeholder="e.g., Bangalore" className="mt-2 h-11 rounded-lg" />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state" value={flatmate.state || ''} onChange={e => update('state' as keyof typeof flatmate, e.target.value)} placeholder="e.g., Karnataka" className="mt-2 h-11 rounded-lg" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="budgetMin">Budget min (₹)</Label>
+                    <Input id="budgetMin" type="number" value={flatmate.budget_min} onChange={e => update('budget_min', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
+                  </div>
+                  <div>
+                    <Label htmlFor="budgetMax">Budget max (₹)</Label>
+                    <Input id="budgetMax" type="number" value={flatmate.budget_max} onChange={e => update('budget_max', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <Checkbox id="nonSmoker" checked={flatmate.non_smoker} onCheckedChange={v => update('non_smoker', Boolean(v))} />
+                  <Label htmlFor="nonSmoker">Non-smoker</Label>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="company">Company</Label>
-                <Input id="company" value={flatmate.company} onChange={e => update('company', e.target.value)} placeholder="Company" className="mt-2 h-11 rounded-lg" />
-              </div>
-              <div>
-                <Label htmlFor="budgetMin">Budget min (₹)</Label>
-                <Input id="budgetMin" type="number" value={flatmate.budget_min} onChange={e => update('budget_min', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
-              </div>
-              <div>
-                <Label htmlFor="budgetMax">Budget max (₹)</Label>
-                <Input id="budgetMax" type="number" value={flatmate.budget_max} onChange={e => update('budget_max', Number(e.target.value || 0))} className="mt-2 h-11 rounded-lg" />
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <Checkbox id="nonSmoker" checked={flatmate.non_smoker} onCheckedChange={v => update('non_smoker', Boolean(v))} />
-                <Label htmlFor="nonSmoker">Non-smoker</Label>
-              </div>
-              <div>
-                <Label>Food preference</Label>
-                <Select value={flatmate.food_preference} onValueChange={(v: 'Veg' | 'Non-Veg' | 'Vegan') => update('food_preference', v)}>
-                  <SelectTrigger className="mt-2 h-11 rounded-lg"><SelectValue placeholder="Select preference" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Veg">Veg</SelectItem>
-                    <SelectItem value="Non-Veg">Non-Veg</SelectItem>
-                    <SelectItem value="Vegan">Vegan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <Checkbox id="gated" checked={flatmate.gated_community} onCheckedChange={v => update('gated_community', Boolean(v))} />
-                <Label htmlFor="gated">Gated community preference</Label>
+
+              {/* Column 2 continued */}
+              <div className="space-y-4">
+                <div>
+                  <Label>Food preference</Label>
+                  <Select value={flatmate.food_preference} onValueChange={(v: 'Veg' | 'Non-Veg' | 'Vegan') => update('food_preference', v)}>
+                    <SelectTrigger className="mt-2 h-11 rounded-lg"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Veg">Veg</SelectItem>
+                      <SelectItem value="Non-Veg">Non-Veg</SelectItem>
+                      <SelectItem value="Vegan">Vegan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <Checkbox id="gated" checked={flatmate.gated_community} onCheckedChange={v => update('gated_community', Boolean(v))} />
+                  <Label htmlFor="gated">Gated community</Label>
+                </div>
+                <div>
+                  <Label htmlFor="imageUrl">Profile image URL</Label>
+                  <Input id="imageUrl" value={flatmate.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." className="mt-2 h-11 rounded-lg" />
+                </div>
               </div>
             </div>
 
@@ -243,21 +317,15 @@ export default function CreateFlatmateProfilePage() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-3 mt-6">
               <Button type="button" variant="outline" onClick={() => setFlatmate(defaultFlatmate)} className="h-11 px-5">Reset</Button>
-              <Button type="submit" disabled={submitting} className="h-11 px-5 bg-purple-600 hover:bg-purple-900 disabled:opacity-60 disabled:cursor-not-allowed">
+              <Button type="submit" disabled={submitting || limitReached} className="h-11 px-5 bg-purple-600 hover:bg-purple-900 disabled:opacity-60 disabled:cursor-not-allowed">
                 {submitting ? 'Saving...' : 'Save Profile'}
               </Button>
             </div>
           </form>
 
-          {/* Live Preview */}
-          <div>
-            <div className="sticky top-24">
-              <h2 className="text-lg font-semibold mb-4">Live preview</h2>
-              <FlatmateCard flatmate={flatmate} />
-            </div>
-          </div>
+          {/* Live Preview removed per request */}
         </div>
       </main>
     </div>

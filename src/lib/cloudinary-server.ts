@@ -52,7 +52,7 @@ export const serverUploadToCloudinary = async (
       is_primary: false,
     };
   } catch (error) {
-    const err = error as any;
+    const err = error as { http_code?: number; statusCode?: number; status?: number; message?: string; error?: { message?: string }; response?: { body?: { error?: { message?: string } } } };
     const httpCode = err?.http_code || err?.statusCode || err?.status;
     const cloudMessage =
       err?.message ||
@@ -74,7 +74,7 @@ export const deleteFromCloudinary = async (
     const result = await cloudinary.uploader.destroy(publicId);
     return result.result === "ok";
   } catch (error) {
-    const err = error as any;
+    const err = error as { http_code?: number; statusCode?: number; status?: number; message?: string; error?: { message?: string }; response?: { body?: { error?: { message?: string } } } };
     const httpCode = err?.http_code || err?.statusCode || err?.status;
     const cloudMessage =
       err?.message ||

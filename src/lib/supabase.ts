@@ -30,10 +30,12 @@ export type Flat = {
   room_type: string;
   tags: string[];
   created_at: string;
+  owner_id?: string;
 };
 
 export type Flatmate = {
   id: string;
+  user_id?: string;
   name: string;
   age: number;
   gender: string;
@@ -43,6 +45,8 @@ export type Flatmate = {
   non_smoker: boolean;
   food_preference: "Veg" | "Non-Veg" | "Vegan";
   gated_community: boolean;
+  city?: string;
+  state?: string;
   amenities: string[];
   preferred_locations: string[];
   image_url: string;

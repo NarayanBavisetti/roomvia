@@ -22,12 +22,14 @@ export default function ChatSidebar() {
     if (isSidebarOpen) {
       refreshChatList()
     }
-  }, [isSidebarOpen]) // Remove refreshChatList from dependencies
+  }, [isSidebarOpen, refreshChatList])
 
   if (!isSidebarOpen) return null
 
   const handleChatClick = (otherUserId: string, otherUserEmail: string) => {
-    openChat(otherUserId, otherUserEmail)
+    // For existing chats from chat list, we provide a placeholder context
+    // The actual context will be maintained by the existing chat relationship
+    openChat(otherUserId, otherUserEmail, 'existing-chat-placeholder')
   }
 
   const getUserInitials = (email: string | null) => {

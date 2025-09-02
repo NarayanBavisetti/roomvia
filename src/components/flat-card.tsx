@@ -43,9 +43,6 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const { user } = useAuth()
   const { openChat } = useChat()
 
-  // Mock owner data - in real app this would come from the flat object
-  const ownerEmail = `owner_${flat.id}@example.com`
-
   const handleMessageOwner = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!user) {
@@ -56,9 +53,12 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
       return
     }
     
-    // Generate a mock owner ID based on flat ID
-    const ownerId = `owner_${flat.id}`
-    openChat(ownerId, ownerEmail)
+    // Use real owner user id if available; otherwise, block and prompt
+    if (!flat.owner_id) {
+      console.warn('Listing missing owner_id; cannot start chat')
+      return
+    }
+    openChat(flat.owner_id, `user_${flat.owner_id}`, flat.id)
   }
 
   const handleGetDirections = (e: React.MouseEvent) => {

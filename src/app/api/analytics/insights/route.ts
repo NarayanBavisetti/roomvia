@@ -5,7 +5,7 @@ import type { AnalyticsData } from "@/lib/openai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, forceRefresh = false } = await request.json();
+    const { userId } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get analytics data from database
-    const [brokerAnalytics, searchTrends, marketTrends] = await Promise.all([
+    const [, searchTrends, marketTrends] = await Promise.all([
       analyticsService.getBrokerAnalytics(userId, 30),
       analyticsService.getSearchTrends(30),
       analyticsService.getMarketTrends(),

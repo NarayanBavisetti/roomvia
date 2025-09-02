@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { analyticsService } from '@/lib/analytics'
 import { openAIService } from '@/lib/openai'
@@ -58,13 +58,7 @@ export default function BrokerAnalyticsPage() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<7 | 30 | 90>(30)
   const [isLoadingData, setIsLoadingData] = useState(true)
 
-  useEffect(() => {
-    if (user) {
-      loadAnalyticsData()
-    }
-  }, [user, selectedTimeRange])
-
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
     if (!user) return
 
     setIsLoadingData(true)
@@ -110,7 +104,13 @@ export default function BrokerAnalyticsPage() {
     } finally {
       setIsLoadingData(false)
     }
-  }
+  }, [user, selectedTimeRange])
+
+  useEffect(() => {
+    if (user) {
+      loadAnalyticsData()
+    }
+  }, [user, selectedTimeRange, loadAnalyticsData])
 
   const generateAIInsights = async () => {
     if (!user || !performanceMetrics) return
@@ -497,7 +497,7 @@ export default function BrokerAnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {listingPerformance.slice(0, 10).map((listing, index) => (
+                      {listingPerformance.slice(0, 10).map((listing) => (
                         <tr key={listing.listingId} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-2">
                             <div>

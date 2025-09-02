@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import ImageUpload from '@/components/image-upload'
 import { CloudinaryImage } from '@/lib/cloudinary'
 import { openAIService } from '@/lib/openai'
+import { showToast } from '@/lib/toast'
 
 // Property types for dropdown
 const PROPERTY_TYPES = [
@@ -293,6 +294,18 @@ export default function AddListingPage() {
         throw new Error('You must be logged in to create a listing')
       }
 
+      // Check limit: one listing per user for now (upgrade coming soon)
+      const { count: existingCount, error: countErr } = await supabase
+        .from('listings')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      if (!countErr && (existingCount || 0) > 0) {
+        showToast('You can create one listing per account. Upgrade coming soon.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Form validation
       const validationErrors = validateForm()
       if (validationErrors.length > 0) {
@@ -354,19 +367,20 @@ export default function AddListingPage() {
 
       console.log('Listing created successfully:', data[0])
       
-      // Show success message with listing ID
+      // Toast + redirect to listing page
       const createdListing = data[0]
-      alert(`🎉 Listing submitted successfully!\n\nTitle: ${createdListing.title}\nID: ${createdListing.id}\n\nYour property is now live and can be seen by potential flatmates.`)
+      showToast('Listing created successfully', { variant: 'success' })
+      router.push(`/listing/${createdListing.id}`)
       
       // Reset form
       setFormData(initialFormData)
       setRawText('')
       
-      // Optionally redirect to the listing or home page
-      // window.location.href = `/listing/${createdListing.id}`
+      // Optionally: nothing else
       
     } catch (error) {
       console.error('Submission failed:', error)
+      showToast('Failed to submit listing', { variant: 'error' })
       
       if (error instanceof Error) {
         // Format validation errors nicely

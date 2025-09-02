@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload API error:", error);
     // Include a minimal error shape for debugging (safe to expose)
-    const err = error as any;
+    const err = error as { http_code?: number; statusCode?: number; status?: number; message?: string; error?: { message?: string }; response?: { body?: { error?: { message?: string } } } };
     return NextResponse.json(
       {
         error: err?.message || "Failed to upload image",

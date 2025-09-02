@@ -55,12 +55,15 @@ const getFoodIcon = (preference: string) => {
 }
 
 export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps) {
-  const [isLiked, setIsLiked] = useState(false)
+  const [,] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
+  // Defensive defaults for optional fields
+  const amenities: string[] = Array.isArray(flatmate.amenities) ? flatmate.amenities : []
+  const preferredLocations: string[] = Array.isArray(flatmate.preferred_locations) ? flatmate.preferred_locations : []
 
   // Mock flatmate data - in real app this would be the actual user
   const flatmateEmail = `${flatmate.name.toLowerCase().replace(' ', '.')}@example.com`
@@ -75,8 +78,12 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
       return
     }
     
-    // Use the flatmate ID as the user ID for chat
-    openChat(flatmate.id, flatmateEmail)
+    // Use the user_id for chat, and flatmate.id as the flatmate context
+    if (flatmate.user_id) {
+      openChat(flatmate.user_id, flatmateEmail, undefined, flatmate.id)
+    } else {
+      console.error('Flatmate missing user_id, cannot open chat')
+    }
     onConnect?.()
   }
 
@@ -193,10 +200,10 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
         </div>
 
         {/* Amenities - Compact icons only */}
-        {flatmate.amenities.length > 0 && (
+        {amenities.length > 0 && (
           <div className="mb-3">
             <div className="flex items-center justify-center gap-1">
-              {flatmate.amenities.slice(0, 5).map((amenity, index) => (
+              {amenities.slice(0, 5).map((amenity, index) => (
                 <div
                   key={index}
                   className="p-1.5 bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
@@ -205,9 +212,9 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
                   {amenityIcons[amenity] || <Home className="h-3 w-3" />}
                 </div>
               ))}
-              {flatmate.amenities.length > 5 && (
+              {amenities.length > 5 && (
                 <div className="text-xs text-gray-500 ml-1">
-                  +{flatmate.amenities.length - 5}
+                  +{amenities.length - 5}
                 </div>
               )}
             </div>
@@ -215,14 +222,14 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
         )}
 
         {/* Preferred locations - Compact */}
-        {flatmate.preferred_locations.length > 0 && (
+        {preferredLocations.length > 0 && (
           <div className="mb-3">
             <div className="flex items-center justify-center mb-1">
               <MapPin className="h-3 w-3 text-gray-400 mr-1" />
               <span className="text-xs text-gray-500">Prefers</span>
             </div>
             <div className="flex flex-wrap justify-center gap-1">
-              {flatmate.preferred_locations.slice(0, 2).map((location, index) => (
+              {preferredLocations.slice(0, 2).map((location, index) => (
                 <Badge 
                   key={index}
                   variant="outline" 
@@ -231,12 +238,12 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
                   {location.length > 12 ? location.substring(0, 12) + '...' : location}
                 </Badge>
               ))}
-              {flatmate.preferred_locations.length > 2 && (
+              {preferredLocations.length > 2 && (
                 <Badge 
                   variant="outline" 
                   className="text-xs px-1.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600"
                 >
-                  +{flatmate.preferred_locations.length - 2}
+                  +{preferredLocations.length - 2}
                 </Badge>
               )}
             </div>

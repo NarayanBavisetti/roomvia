@@ -191,6 +191,7 @@ export function useFlatsData(
           .select(
             `
           id,
+          user_id,
           title,
           property_type,
           city,
@@ -217,6 +218,7 @@ export function useFlatsData(
         // Transform data to match Flat interface
         allData = (supabaseData || []).map((listing) => ({
           id: listing.id,
+          owner_id: listing.user_id,
           title: listing.title,
           location: `${listing.city}, ${listing.state}`,
           rent: listing.rent,
