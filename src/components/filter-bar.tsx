@@ -474,8 +474,8 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
         ref={containerRef}
         className={`w-full transition-all duration-200 ease-out ${
           isSticky 
-            ? 'fixed top-0 left-0 right-0 z-[200] bg-white shadow-sm border-b border-gray-100' 
-            : 'relative'
+            ? 'fixed top-0 left-0 right-0 z-[9999] bg-white shadow-sm border-b border-gray-100' 
+            : 'relative z-10'
         }`}
         style={{
           transform: isSticky ? 'translateZ(0)' : 'none', // Force hardware acceleration
@@ -498,7 +498,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
             }`}>
               <div className="flex items-center gap-3 flex-1">
               {filters.map((filter) => (
-                <div key={filter.id} className="relative z-[400]">
+                <div key={filter.id} className="relative z-[99998]">
                   <button
                     onClick={(e) => {
                       e.preventDefault()
@@ -520,11 +520,14 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                     {/* Dropdown menu */}
                     {openDropdown === filter.id && (
                       <div 
-                        className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-xl shadow-xl z-[300] overflow-visible"
+                        className="absolute left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
                         style={{ 
+                          top: '100%',
+                          marginTop: '8px',
                           minWidth: filter.id === 'budget' ? '320px' : '280px',
                           maxHeight: '400px',
-                          overflowY: 'auto'
+                          overflowY: 'auto',
+                          zIndex: 99999
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -560,7 +563,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
               </div>
 
                              <div className="flex items-center gap-3">
-                 <div className="relative z-[400]">
+                 <div className="relative z-[99998]">
                    <button
                      onClick={(e) => {
                        e.preventDefault()
@@ -587,7 +590,12 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
                   {openDropdown === 'more' && (
                     <div 
-                      className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-xl shadow-2xl z-[300] w-[600px] max-h-[600px] overflow-y-auto"
+                      className="absolute right-0 bg-white border border-gray-200 rounded-xl shadow-2xl w-[600px] max-h-[600px] overflow-y-auto"
+                      style={{
+                        top: '100%',
+                        marginTop: '8px',
+                        zIndex: 99999
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                        <div className="p-8">
@@ -739,7 +747,8 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       {/* Click outside to close dropdown */}
       {openDropdown && (
         <div
-          className="fixed inset-0 z-[250]"
+          className="fixed inset-0"
+          style={{ zIndex: 99997 }}
           onClick={() => setOpenDropdown(null)}
         />
       )}
