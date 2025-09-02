@@ -13,21 +13,37 @@ export function showToast(
   const duration = options?.durationMs ?? 2500;
   const variant = options?.variant ?? "info";
 
-  const bgByVariant: Record<string, string> = {
-    success:
-      "bg-gradient-to-r from-emerald-500/30 to-green-600/30 shadow-lg shadow-green-500/20 text-green-900",
-    error:
-      "bg-gradient-to-r from-red-500/30 to-red-600/30 shadow-lg shadow-red-500/20 text-red-900",
-    warning:
-      "bg-gradient-to-r from-amber-400/40 to-yellow-500/40 shadow-lg shadow-yellow-500/20 text-yellow-900",
-    info: "bg-gradient-to-r from-purple-500/30 to-purple-600/30 shadow-lg shadow-purple-500/20 text-purple-900",
+  const stylesByVariant: Record<
+    string,
+    { bg: string; text: string; border: string }
+  > = {
+    success: {
+      bg: "linear-gradient(to right, #10b981, #059669)",
+      text: "#ffffff",
+      border: "#34d399",
+    },
+    error: {
+      bg: "linear-gradient(to right, #ef4444, #dc2626)",
+      text: "#ffffff",
+      border: "#f87171",
+    },
+    warning: {
+      bg: "linear-gradient(to right, #f59e0b, #d97706)",
+      text: "#ffffff",
+      border: "#fbbf24",
+    },
+    info: {
+      bg: "linear-gradient(to right,rgb(145, 169, 166),rgb(202, 188, 206))",
+      text: "#ffffff",
+      border: "#a78bfa",
+    },
   };
 
   const iconByVariant: Record<string, string> = {
     success: "✓",
     error: "✕",
-    warning: "⚠",
-    info: "ℹ",
+    warning: "!",
+    info: "i",
   };
 
   // Ensure container
@@ -49,19 +65,46 @@ export function showToast(
 
   // Toast element
   const toast = document.createElement("div");
-  toast.className = `${bgByVariant[variant]} ${
-    variant === "warning" ? "" : "text-white"
-  } rounded-xl px-4 py-3 text-sm font-medium border border-white/10 backdrop-blur-sm flex items-center gap-2`;
+  const styles = stylesByVariant[variant];
+
+  // Apply styles directly
+  toast.style.background = styles.bg;
+  toast.style.color = styles.text;
+  toast.style.border = `1px solid ${styles.border}`;
+  toast.style.borderRadius = "12px";
+  toast.style.padding = "12px 16px";
+  toast.style.fontSize = "14px";
+  toast.style.fontWeight = "500";
+  toast.style.display = "flex";
+  toast.style.alignItems = "center";
+  toast.style.gap = "8px";
+  toast.style.backdropFilter = "blur(4px)";
+  toast.style.boxShadow =
+    "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
 
   // Create icon element
   const iconElement = document.createElement("span");
   iconElement.textContent = iconByVariant[variant];
-  iconElement.className = "text-base flex-shrink-0";
+  iconElement.style.fontSize = "16px";
+  iconElement.style.fontWeight = "bold";
+  iconElement.style.flexShrink = "0";
+  iconElement.style.width = "20px";
+  iconElement.style.height = "20px";
+  iconElement.style.display = "flex";
+  iconElement.style.alignItems = "center";
+  iconElement.style.justifyContent = "center";
+  iconElement.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+  iconElement.style.borderRadius = "50%";
+  iconElement.style.color = "#ffffff";
 
   // Create message element
   const messageElement = document.createElement("span");
   messageElement.textContent = message;
-  messageElement.className = "flex-1";
+  messageElement.style.flex = "1";
+  messageElement.style.color = "#ffffff";
+  messageElement.style.fontSize = "14px";
+  messageElement.style.fontWeight = "500";
+  messageElement.style.lineHeight = "1.4";
 
   // Append elements
   toast.appendChild(iconElement);

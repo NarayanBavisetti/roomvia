@@ -245,26 +245,28 @@ export default function ListingDetailPage() {
   const images = listing.images || []
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Navbar />
       
-      <div className="pt-20 pb-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="mb-6 text-gray-600 hover:text-gray-900"
+            className="mb-4 text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Listings
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            <span className="text-sm">Back to Listings</span>
           </Button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Left Column - Images and Details */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-3 space-y-5">
               {/* Collage Image Gallery */}
-              <ImageGallery images={images.map(img => img.url)} alt={listing.title} />
+              <div className="rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                <ImageGallery images={images.map(img => img.url)} alt={listing.title} />
+              </div>
 
               {/* Lightbox */}
               <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
@@ -297,31 +299,31 @@ export default function ListingDetailPage() {
               </Dialog>
 
               {/* Property Title and Location */}
-              <div>
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <div className="bg-white rounded-lg p-5 border border-gray-100">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 leading-tight">
                       {listing.title}
                     </h1>
-                    <div className="flex items-center text-gray-600 mb-4">
-                      <MapPin className="h-5 w-5 mr-2" />
+                    <div className="flex items-center text-gray-500 text-sm mb-3">
+                      <MapPin className="h-4 w-4 mr-1.5" />
                       <span>{listing.city}, {listing.state}, {listing.country}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ml-4">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={toggleLike}
-                      className="text-gray-600 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 p-2 h-8 w-8"
                     >
-                      {isLiked ? <Heart className="h-4 w-4 fill-red-500 text-red-500" /> : <HeartOff className="h-4 w-4" />}
+                      {isLiked ? <Heart className="h-4 w-4 fill-red-500 text-red-500" /> : <Heart className="h-4 w-4" />}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={handleShare}
-                      className="text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 p-2 h-8 w-8"
                     >
                       <Share className="h-4 w-4" />
                     </Button>
@@ -329,52 +331,61 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* Property Type and Status */}
-                <div className="flex items-center gap-3 mb-6">
-                  <Badge variant="secondary" className="text-purple-700 bg-purple-100">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs px-2.5 py-1 rounded-full">
                     {listing.property_type}
                   </Badge>
                   <Badge 
-                    variant={listing.status === 'active' ? 'default' : 'secondary'}
-                    className={listing.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                    className={`text-xs px-2.5 py-1 rounded-full ${
+                      listing.status === 'active' 
+                        ? 'bg-green-100 text-green-700 border-green-200' 
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}
                   >
                     {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
                   </Badge>
-                  <Badge variant="outline" className="text-gray-600">
-                    {listing.user_type === 'broker' ? 'Posted by Broker' : 'Posted by Owner'}
+                  <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs px-2.5 py-1 rounded-full">
+                    {listing.user_type === 'broker' ? 'Broker' : 'Owner'}
                   </Badge>
                 </div>
               </div>
 
               {/* Property Details */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Property Details</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white rounded-lg border border-gray-100">
+                <div className="p-5">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900">Property Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                     {listing.area_sqft && (
-                      <div className="flex items-center text-gray-600">
-                        <Maximize className="h-5 w-5 mr-2" />
+                      <div className="flex items-center text-gray-600 text-sm">
+                        <div className="p-2 bg-gray-50 rounded-lg mr-3">
+                          <Maximize className="h-4 w-4" />
+                        </div>
                         <span>{listing.area_sqft} sq.ft</span>
                       </div>
                     )}
                     {listing.floor && (
-                      <div className="flex items-center text-gray-600">
-                        <Building2 className="h-5 w-5 mr-2" />
+                      <div className="flex items-center text-gray-600 text-sm">
+                        <div className="p-2 bg-gray-50 rounded-lg mr-3">
+                          <Building2 className="h-4 w-4" />
+                        </div>
                         <span>Floor {listing.floor}</span>
                       </div>
                     )}
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="h-5 w-5 mr-2" />
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <div className="p-2 bg-green-50 rounded-lg mr-3">
+                        <Calendar className="h-4 w-4 text-green-600" />
+                      </div>
                       <span>Available Now</span>
                     </div>
                   </div>
 
                   {/* Amenities */}
                   {listing.highlights && listing.highlights.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="font-medium text-gray-900 mb-3">Amenities</h4>
+                    <div className="mb-5">
+                      <h4 className="font-medium text-gray-900 mb-3 text-sm">Amenities</h4>
                       <div className="flex flex-wrap gap-2">
                         {listing.highlights.map((highlight, index) => (
-                          <Badge key={index} variant="outline" className="text-gray-700">
+                          <Badge key={index} className="bg-green-50 text-green-700 border-green-200 text-xs px-2.5 py-1 rounded-full">
                             <Check className="h-3 w-3 mr-1" />
                             {highlight}
                           </Badge>
@@ -385,9 +396,9 @@ export default function ListingDetailPage() {
 
                   {/* Description */}
                   {listing.description && (
-                    <div className="mb-6">
-                      <h4 className="font-medium text-gray-900 mb-3">Description</h4>
-                      <p className="text-gray-700 leading-relaxed">
+                    <div className="mb-5">
+                      <h4 className="font-medium text-gray-900 mb-3 text-sm">Description</h4>
+                      <p className="text-gray-600 leading-relaxed text-sm">
                         {listing.description}
                       </p>
                     </div>
@@ -396,138 +407,134 @@ export default function ListingDetailPage() {
                   {/* Flatmate Preferences */}
                   {listing.flatmate_preferences && (
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Flatmate Preferences</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-medium">Gender:</span> {listing.flatmate_preferences.gender}
+                      <h4 className="font-medium text-gray-900 mb-3 text-sm">Flatmate Preferences</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Gender:</span>
+                          <span className="text-gray-600 ml-1">{listing.flatmate_preferences.gender}</span>
                         </div>
-                        <div>
-                          <span className="font-medium">Smoking:</span> {listing.flatmate_preferences.smoker ? 'Allowed' : 'Not Allowed'}
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Smoking:</span>
+                          <span className="text-gray-600 ml-1">{listing.flatmate_preferences.smoker ? 'Allowed' : 'Not Allowed'}</span>
                         </div>
-                        <div>
-                          <span className="font-medium">Food:</span> {listing.flatmate_preferences.food}
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Food:</span>
+                          <span className="text-gray-600 ml-1">{listing.flatmate_preferences.food}</span>
                         </div>
-                        <div>
-                          <span className="font-medium">Pets:</span> {listing.flatmate_preferences.pets ? 'Allowed' : 'Not Allowed'}
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Pets:</span>
+                          <span className="text-gray-600 ml-1">{listing.flatmate_preferences.pets ? 'Allowed' : 'Not Allowed'}</span>
                         </div>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Additional Expenses */}
               {listing.expenses && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold mb-3">Additional Information</h3>
-                    <p className="text-gray-700">{listing.expenses}</p>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-lg border border-gray-100 p-5">
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900">Additional Information</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{listing.expenses}</p>
+                </div>
               )}
             </div>
 
             {/* Right Column - Pricing and Contact */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-6">
+            <div className="lg:col-span-2">
+              <div className="sticky top-20 space-y-4">
                 {/* Pricing Card */}
-                <Card className="shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="text-center mb-6">
-                      <div className="flex items-center justify-center text-3xl font-bold text-gray-900 mb-2">
-                        <IndianRupee className="h-8 w-8" />
+                <div className="bg-white rounded-lg border border-gray-100 shadow-sm">
+                  <div className="p-5">
+                    <div className="text-center mb-5">
+                      <div className="flex items-center justify-center text-2xl font-bold text-gray-900 mb-1">
+                        <IndianRupee className="h-6 w-6" />
                         {listing.rent.toLocaleString('en-IN')}
-                        <span className="text-lg font-normal text-gray-600 ml-1">/month</span>
+                        <span className="text-sm font-normal text-gray-500 ml-1">/month</span>
                       </div>
                     </div>
 
-                    <div className="space-y-4 mb-6">
+                    <div className="space-y-3 mb-5">
                       {listing.maintenance > 0 && (
-                        <div className="flex justify-between text-gray-600">
-                          <span>Maintenance:</span>
-                          <span>₹{listing.maintenance.toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Maintenance:</span>
+                          <span className="font-medium text-gray-900">₹{listing.maintenance.toLocaleString('en-IN')}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-gray-600">
-                        <span>Security Deposit:</span>
-                        <span>₹{listing.security_deposit.toLocaleString('en-IN')}</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Security Deposit:</span>
+                        <span className="font-medium text-gray-900">₹{listing.security_deposit.toLocaleString('en-IN')}</span>
                       </div>
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between font-semibold text-gray-900">
+                      <div className="border-t pt-3">
+                        <div className="flex justify-between font-semibold text-gray-900 text-sm">
                           <span>Total Move-in Cost:</span>
                           <span>₹{(listing.rent + listing.security_deposit + listing.maintenance).toLocaleString('en-IN')}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       <Button 
                         onClick={handleChatClick}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                        size="lg"
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-sm py-2.5 rounded-lg"
                       >
-                        <MessageCircle className="h-5 w-5 mr-2" />
+                        <MessageCircle className="h-4 w-4 mr-2" />
                         Start Chat
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full"
-                        size="lg"
+                        className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 text-sm py-2.5 rounded-lg"
                         onClick={() => window.open(`tel:${listing.contact_number}`)}
                       >
-                        <Phone className="h-5 w-5 mr-2" />
+                        <Phone className="h-4 w-4 mr-2" />
                         {listing.contact_number}
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Owner Info */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="relative w-12 h-12 rounded-full bg-gray-200 mr-4">
-                        {listing.profiles?.avatar_url ? (
-                          <Image
-                            src={listing.profiles.avatar_url}
-                            alt={listing.profiles.full_name || 'Owner'}
-                            fill
-                            className="object-cover rounded-full"
-                          />
-                        ) : (
-                          <div className="w-full h-full rounded-full bg-purple-100 flex items-center justify-center">
-                            <User className="h-6 w-6 text-purple-600" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {listing.profiles?.full_name || 'Property Owner'}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {listing.user_type === 'broker' ? 'Verified Broker' : 'Property Owner'}
-                        </p>
-                      </div>
+                <div className="bg-white rounded-lg border border-gray-100 p-4">
+                  <div className="flex items-center mb-3">
+                    <div className="relative w-10 h-10 rounded-full bg-gray-200 mr-3">
+                      {listing.profiles?.avatar_url ? (
+                        <Image
+                          src={listing.profiles.avatar_url}
+                          alt={listing.profiles.full_name || 'Owner'}
+                          fill
+                          className="object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-purple-100 flex items-center justify-center">
+                          <User className="h-5 w-5 text-purple-600" />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Shield className="h-4 w-4 mr-2" />
-                      <span>Verified Contact</span>
+                    <div>
+                      <h4 className="font-medium text-gray-900 text-sm">
+                        {listing.profiles?.full_name || 'Property Owner'}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        {listing.user_type === 'broker' ? 'Verified Broker' : 'Property Owner'}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Shield className="h-3.5 w-3.5 mr-2 text-green-600" />
+                    <span>Verified Contact</span>
+                  </div>
+                </div>
 
                 {/* Safety Tips */}
-                <Card className="bg-yellow-50 border-yellow-200">
-                  <CardContent className="p-6">
-                    <h4 className="font-medium text-yellow-800 mb-2">Safety Tips</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• Always visit the property before making payment</li>
-                      <li>• Verify owner identity and property documents</li>
-                      <li>• Don&apos;t share personal/financial info via chat</li>
-                      <li>• Meet in public places when possible</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="font-medium text-yellow-800 mb-2 text-sm">Safety Tips</h4>
+                  <ul className="text-xs text-yellow-700 space-y-1">
+                    <li>• Always visit the property before making payment</li>
+                    <li>• Verify owner identity and property documents</li>
+                    <li>• Don&apos;t share personal/financial info via chat</li>
+                    <li>• Meet in public places when possible</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
