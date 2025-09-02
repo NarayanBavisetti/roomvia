@@ -137,14 +137,15 @@ export default function Home() {
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Results count and refresh button */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
             <p className="text-lg font-medium text-gray-900">
               {loading && flats.length === 0 ? (
                 'Loading properties...'
               ) : (
                 <>
-                  {totalCount} {totalCount === 1 ? 'property' : 'properties'} found
+                  <span className="text-xl font-bold text-purple-600">{totalCount}</span>{' '}
+                  {totalCount === 1 ? 'property' : 'properties'} found
                   {(searchLocation || searchArea) && (
                     <span className="ml-1 text-gray-600 font-normal">
                       in {searchArea || searchLocation}
