@@ -64,7 +64,7 @@ export default function ProfilePage() {
         }
 
         if (profQuery.data) {
-          const prof: any = profQuery.data
+          const prof = profQuery.data as { name?: string; account_type?: string; locked?: boolean }
           setProfile({
             name: (supportsName ? (prof.name || '') : ''),
             account_type: (prof.account_type as 'normal' | 'broker') || 'normal',
@@ -74,7 +74,7 @@ export default function ProfilePage() {
         }
 
         // No profile exists → bootstrap a default one (omit name when unsupported)
-        const insertPayload: any = {
+        const insertPayload: Record<string, unknown> = {
           user_id: user.id,
           account_type: 'normal',
           locked: false,
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         }
 
         if (newProf) {
-          const np: any = newProf
+          const np = newProf as { name?: string; account_type?: string; locked?: boolean }
           setProfile({
             name: (supportsName ? (np.name || '') : ''),
             account_type: (np.account_type as 'normal' | 'broker') || 'normal',
@@ -119,7 +119,7 @@ export default function ProfilePage() {
     setSuccess('')
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         user_id: user.id,
         account_type: profile.account_type,
         locked: profile.locked,
@@ -153,7 +153,7 @@ export default function ProfilePage() {
     setError('')
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         user_id: user.id,
         account_type: profile.account_type,
         locked: true,
@@ -258,7 +258,7 @@ export default function ProfilePage() {
                 <Input
                   id="name"
                   type="text"
-                  value={profile.name}
+                  value={profile.name || ''}
                   onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
                   disabled={!isEditing}
                   placeholder="Enter your full name"

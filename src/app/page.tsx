@@ -13,7 +13,7 @@ import { useFlatsData } from '@/hooks/useFlatsData'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
 import type { State, Area } from '@/lib/api'
-
+import { Analytics } from "@vercel/analytics/next"
 
 // All data now comes from the database through the useFlatsData hook
 

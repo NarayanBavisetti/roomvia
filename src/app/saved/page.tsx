@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Navbar from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { savesApi, type SaveItem } from '@/lib/saves'
 import { useAuth } from '@/contexts/auth-context'
@@ -132,7 +132,7 @@ export default function SavedPage() {
             <Heart className="h-8 w-8 text-purple-500 mr-3" />
             Your Saved Items
           </h1>
-          <p className="text-gray-600">Keep track of properties and people you're interested in</p>
+          <p className="text-gray-600">Keep track of properties and people you&apos;re interested in</p>
         </div>
 
         {/* Error Message */}
