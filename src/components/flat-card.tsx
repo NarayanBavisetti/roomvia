@@ -98,11 +98,11 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 
   return (
     <div 
-      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-gray-200"
+      className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100 hover:border-purple-200 hover:-translate-y-0.5"
       onClick={onClick}
     >
       {/* Image container with slideshow */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div className="relative aspect-[5/3] overflow-hidden bg-gray-50">
         {(() => {
           const imageSrc = flat.images && flat.images.length > 0
             ? (flat.images[currentIndex]?.url || flat.image_url)
@@ -138,18 +138,17 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
               aria-label="Previous image"
             >
-              {/* Using a simple chevron */}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
               aria-label="Next image"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </button>
           </>
         )}
@@ -165,9 +164,9 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         <button
           onClick={handleToggleSave}
           aria-pressed={isSaved}
-          className="absolute top-4 right-4 p-2.5 bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition-colors shadow-sm"
+          className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 shadow-sm hover:scale-105"
         >
-          <Bookmark className={`h-4 w-4 ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600'}`} />
+          <Bookmark className={`h-3.5 w-3.5 transition-colors ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600 hover:text-purple-400'}`} />
         </button>
 
         {/* Dots indicator */}
@@ -185,41 +184,41 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         )}
 
         {/* Room type badge */}
-        <div className="absolute top-4 left-4">
-          <Badge variant="secondary" className="bg-white/90 text-gray-800 font-medium px-3 py-1 text-xs border-0">
+        <div className="absolute top-3 left-3">
+          <Badge variant="secondary" className="bg-purple-500 text-white font-medium px-2.5 py-0.5 text-xs border-0 rounded-full shadow-sm">
             {flat.room_type}
           </Badge>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-3">
         {/* Title and location */}
-        <div className="mb-3">
-          <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-1.5 line-clamp-1 group-hover:text-purple-500 transition-colors">
+        <div className="mb-2.5">
+          <h3 className="font-semibold text-sm md:text-base text-gray-900 mb-1 line-clamp-1 group-hover:text-purple-600 transition-colors leading-tight">
             {flat.title}
           </h3>
-          <div className="flex items-center text-gray-500 text-xs md:text-sm">
-            <MapPin className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+          <div className="flex items-center text-gray-500 text-xs">
+            <MapPin className="h-3 w-3 mr-1.5 flex-shrink-0" />
             <span className="line-clamp-1">{flat.location}</span>
           </div>
         </div>
 
         {/* Rent */}
-        <div className="mb-3">
-          <div className="text-xl md:text-2xl font-bold text-gray-900">
+        <div className="mb-2.5">
+          <div className="text-lg md:text-xl font-bold text-gray-900">
             ₹{flat.rent.toLocaleString('en-IN')}
-            <span className="text-xs md:text-sm font-normal text-gray-500 ml-1">/month</span>
+            <span className="text-xs font-normal text-gray-500 ml-1">/month</span>
           </div>
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1 mb-3">
           {flat.tags.slice(0, 3).map((tag, index) => (
             <Badge 
               key={index}
               variant="outline" 
-              className="text-[11px] px-2.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 rounded-full"
+              className="text-[10px] px-2 py-0.5 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 rounded-full font-medium"
             >
               {tag}
             </Badge>
@@ -227,7 +226,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           {flat.tags.length > 3 && (
             <Badge 
               variant="outline" 
-              className="text-[11px] px-2.5 py-0.5 bg-gray-50 border-gray-200 text-gray-600 rounded-full"
+              className="text-[10px] px-2 py-0.5 bg-gray-50 border-gray-200 text-gray-600 rounded-full font-medium"
             >
               +{flat.tags.length - 3}
             </Badge>
@@ -235,23 +234,23 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2.5">
+        <div className="flex gap-2">
           <Button
             onClick={handleMessageOwner}
             variant="outline"
             size="sm"
-            className="flex-1 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-500 transition-colors py-2 rounded-lg"
+            className="flex-1 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 py-1.5 rounded-lg text-xs font-medium hover:scale-105"
           >
-            <MessageCircle className="h-3.5 w-3.5 mr-2" />
+            <MessageCircle className="h-3 w-3 mr-1.5" />
             Chat
           </Button>
           <Button
             onClick={handleGetDirections}
             variant="secondary"
             size="sm"
-            className="flex-1 bg-gray-100 text-gray-800 hover:bg-gray-200 py-2 rounded-lg"
+            className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-200 py-1.5 rounded-lg text-xs font-medium hover:scale-105"
           >
-            <MapPin className="h-3.5 w-3.5 mr-2" />
+            <MapPin className="h-3 w-3 mr-1.5" />
             Directions
           </Button>
         </div>
