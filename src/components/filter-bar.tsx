@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { ChevronDown, X, SlidersHorizontal, Home, Building2, Utensils, Cigarette, CigaretteOff, Shield, Waves, Dumbbell, Snowflake, Bath, Archive, Package, Fan, Wifi, Car, Zap, Droplets, ShirtIcon } from 'lucide-react'
+import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { useSavedFilters, type SavedFilter } from '@/hooks/useSavedFilters'
 
 interface FilterOption {
   id: string
@@ -103,32 +105,85 @@ const moreFilters = {
   }
 }
 
-const sortOptions = [
-  'Distance',
-  'Price: Low to High',
-  'Price: High to Low',
-  'Newest First',
-  'Most Popular'
-]
 
 interface FilterBarProps {
   onFiltersChange?: (filters: Record<string, string[]>) => void
+  searchLocation?: string
+  searchArea?: string
 }
 
-export default function FilterBar({ onFiltersChange }: FilterBarProps) {
-  const [isSticky, setIsSticky] = useState(false)
+
+export default function FilterBar({ onFiltersChange, searchLocation, searchArea }: FilterBarProps) {
+  const { user } = useAuth()
+  const [isSticky] = useState(false)
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [barHeight, setBarHeight] = useState(0)
   const [budgetRange, setBudgetRange] = useState<[number, number]>([6899, 200000])
-  const [activeTab, setActiveTab] = useState<'pg_hostels' | 'flats'>('pg_hostels')
-  const [selectedSort, setSelectedSort] = useState('Distance')
+  const [activeTab] = useState<'flats' | 'flats'>('flats')
   const [moreFiltersState, setMoreFiltersState] = useState<Record<string, string[]>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
-  const originalPosition = useRef<number>(0)
 
+  // Use the saved filters hook
+  const {
+    savedFilters,
+    error: savedFiltersError,
+    debouncedSave,
+    clearFilters: clearSavedFilters
+  } = useSavedFilters({
+    searchLocation,
+    searchArea,
+    autoLoadOnMount: true,
+    debounceDelay: 1000
+  })
 
+  // Auto-apply most recent filter when saved filters are loaded
+  useEffect(() => {
+    if (savedFilters.length > 0) {
+      const mostRecentFilter = savedFilters[0]
+      console.log('Auto-applying most recent filter:', mostRecentFilter)
+      applyFiltersSilently(mostRecentFilter)
+    }
+  }, [savedFilters]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const applyFiltersSilently = (savedFilter: SavedFilter) => {
+    // Apply filters without triggering onFiltersChange to avoid infinite loops
+    if (savedFilter.min_rent && savedFilter.max_rent) {
+      setBudgetRange([savedFilter.min_rent, savedFilter.max_rent])
+    }
+    
+    if (savedFilter.filters) {
+      // Separate main filters from more filters
+      const mainFilterIds = filters.map(f => f.id)
+      const mainFilters: Record<string, string[]> = {}
+      const moreFilters: Record<string, string[]> = {}
+      
+      Object.entries(savedFilter.filters).forEach(([key, value]) => {
+        if (mainFilterIds.includes(key)) {
+          mainFilters[key] = value as string[]
+        } else {
+          moreFilters[key] = value as string[]
+        }
+      })
+      
+      setActiveFilters(mainFilters)
+      setMoreFiltersState(moreFilters)
+      
+      // Now trigger onFiltersChange with the loaded filters
+      onFiltersChange?.({ ...mainFilters, ...moreFilters })
+    }
+  }
+
+  // Helper function to save filters (supports passing freshly computed filters to avoid stale state)
+  const saveCurrentFilters = useCallback((filtersOverride?: Record<string, string[]>) => {
+    const allFilters = filtersOverride ?? { ...activeFilters, ...moreFiltersState }
+    debouncedSave(allFilters, {
+      property_type: activeTab,
+      min_rent: budgetRange[0],
+      max_rent: budgetRange[1],
+      amenities: (filtersOverride ?? moreFiltersState).amenities || []
+    })
+  }, [activeFilters, moreFiltersState, debouncedSave, activeTab, budgetRange])
 
   const toggleFilter = (filterId: string, value?: string) => {
     if (filters.find(f => f.id === filterId)?.type === 'toggle') {
@@ -140,6 +195,12 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       }
       setActiveFilters(newFilters)
       onFiltersChange?.(newFilters)
+      
+      // Auto-save filters with freshly computed state if user is logged in
+      if (user) {
+        const merged = { ...newFilters, ...moreFiltersState }
+        saveCurrentFilters(merged)
+      }
     } else if (value) {
       const newFilters = { ...activeFilters }
       if (!newFilters[filterId]) {
@@ -157,8 +218,14 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       
       setActiveFilters(newFilters)
       onFiltersChange?.(newFilters)
+      
+      // Auto-save filters with freshly computed state if user is logged in
+      if (user) {
+        const merged = { ...newFilters, ...moreFiltersState }
+        saveCurrentFilters(merged)
+      }
     }
-    setOpenDropdown(null)
+    // Keep dropdown open for multiple selections - don't close it
   }
 
   const handleBudgetChange = (range: [number, number]) => {
@@ -167,13 +234,29 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     newFilters['budget'] = [`₹${range[0]} - ₹${range[1]}`]
     setActiveFilters(newFilters)
     onFiltersChange?.(newFilters)
+    
+    // Auto-save filters with freshly computed state if user is logged in
+    if (user) {
+      const merged = { ...newFilters, ...moreFiltersState }
+      saveCurrentFilters(merged)
+    }
   }
 
-  const clearAllFilters = () => {
+  const clearAllFilters = async () => {
     setActiveFilters({})
     setBudgetRange([6899, 200000])
     setMoreFiltersState({})
     onFiltersChange?.({})
+    
+    // Delete the user's saved filters from database using the hook
+    if (user) {
+      try {
+        await clearSavedFilters()
+        console.log('Cleared filters from database')
+      } catch (error) {
+        console.error('Error clearing filters from database:', error)
+      }
+    }
   }
 
   const getActiveFilterCount = () => {
@@ -209,7 +292,13 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     
     setMoreFiltersState(newMoreFilters)
     // Combine with main filters for callback
-    onFiltersChange?.({ ...activeFilters, ...newMoreFilters })
+    const combined = { ...activeFilters, ...newMoreFilters }
+    onFiltersChange?.(combined)
+    
+    // Auto-save filters with freshly computed state if user is logged in
+    if (user) {
+      saveCurrentFilters(combined)
+    }
   }
 
   const BudgetRangeSlider = () => {
@@ -220,7 +309,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     // Update local range when budgetRange prop changes
     useEffect(() => {
       setLocalRange(budgetRange)
-    }, [budgetRange])
+    }, [budgetRange]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const getPercentage = (value: number) => {
       const min = 6899
@@ -370,22 +459,6 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     )
   }
 
-  const getActiveFiltersByCategory = () => {
-    const categoryMap: Record<string, { label: string; items: string[] }> = {}
-    
-    Object.entries(activeFilters).forEach(([filterId, values]) => {
-      const filter = filters.find(f => f.id === filterId)
-      if (filter && values.length > 0) {
-        const categoryLabel = filter.label
-        if (!categoryMap[categoryLabel]) {
-          categoryMap[categoryLabel] = { label: categoryLabel, items: [] }
-        }
-        categoryMap[categoryLabel].items.push(...values.map(v => v === 'true' ? 'Allowed' : v))
-      }
-    })
-    
-    return categoryMap
-  }
 
   return (
     <div className="w-full sticky top-0 z-[9999]">
@@ -590,6 +663,13 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                </div>
             </div>
 
+                         {/* Error message for saved filters */}
+             {savedFiltersError && (
+               <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                 <span>⚠️ Error with saved filters: {savedFiltersError}</span>
+               </div>
+             )}
+
                          {/* Active filter chips - all in one line - hidden when sticky */}
              {getActiveFilterCount() > 0 && !isSticky && (
                <div className="flex flex-wrap items-center gap-2 mt-4">
@@ -654,7 +734,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       <div 
         className="transition-all duration-200 ease-out overflow-hidden"
         style={{
-          height: isSticky ? `${barHeight}px` : '0px'
+          height: isSticky ? '80px' : '0px'
         }}
       />
 
