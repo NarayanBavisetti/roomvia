@@ -437,7 +437,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                     {openDropdown === filter.id && (
                       <div 
 
-                        className="absolute left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
+                        className="absolute z-20 left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
                         style={{ 
                           top: '100%',
                           marginTop: '8px',
@@ -658,6 +658,10 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
         }}
       />
 
+
+{openDropdown && (
+<div className='z-[19] absolute inset-0' onClick={() => setOpenDropdown(null)}/>
+)}
       
     </div>
   )
