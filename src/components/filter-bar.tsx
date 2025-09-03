@@ -433,28 +433,6 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
 
         </div>
         
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-          <button
-            onClick={() => {
-              setLocalRange([6899, 200000])
-              handleBudgetChange([6899, 200000])
-              setOpenDropdown(null)
-            }}
-            className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
-          >
-            Clear All
-          </button>
-          <button
-            onClick={() => {
-              handleBudgetChange(localRange)
-              setOpenDropdown(null)
-            }}
-            className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
-          >
-            Apply
-          </button>
-        </div>
       </div>
     )
   }
@@ -589,15 +567,7 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Header */}
-                      <div className="px-5 py-4 border-b border-gray-100">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-bold text-gray-900">Filters</h3>
-                          <button onClick={() => setOpenDropdown(null)} className="p-1.5 hover:bg-gray-50 rounded-full transition-colors">
-                            <X className="h-4 w-4 text-gray-400" />
-                          </button>
-                        </div>
-                      </div>
+
 
                       {/* Scrollable content */}
                       <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'hidden' }} className="px-5 py-4 space-y-6">
@@ -630,24 +600,6 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
                         ))}
                       </div>
 
-                      {/* Footer */}
-                      <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-                        <button
-                          onClick={() => {
-                            setMoreFiltersState({})
-                            onFiltersChange?.(activeFilters)
-                          }}
-                          className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
-                        >
-                          Clear All
-                        </button>
-                        <button
-                          onClick={() => setOpenDropdown(null)}
-                          className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
-                        >
-                          Apply Filters
-                        </button>
-                      </div>
                     </div>
             )}
         </div>
