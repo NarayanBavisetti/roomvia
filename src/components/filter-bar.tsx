@@ -128,90 +128,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
   const innerRef = useRef<HTMLDivElement | null>(null)
   const originalPosition = useRef<number>(0)
 
-  useEffect(() => {
-    let ticking = false
-    const threshold = 5 // Add small threshold to prevent flickering
 
-    const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          if (containerRef.current) {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-            
-            // Set initial position only once
-            if (originalPosition.current === 0) {
-              const rect = containerRef.current.getBoundingClientRect()
-              originalPosition.current = scrollTop + rect.top
-            }
-            
-            // Use threshold to prevent flickering
-            const shouldBeSticky = scrollTop >= (originalPosition.current - threshold)
-            
-            // Only update state if there's a real change
-            if (shouldBeSticky !== isSticky) {
-              setIsSticky(shouldBeSticky)
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('filters-sticky-change', { detail: { sticky: shouldBeSticky } }))
-              }
-            }
-          }
-          ticking = false
-        })
-        ticking = true
-      }
-    }
-
-    // Initial setup
-    const initializePosition = () => {
-      if (containerRef.current && originalPosition.current === 0) {
-        const rect = containerRef.current.getBoundingClientRect()
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-        originalPosition.current = scrollTop + rect.top
-      }
-    }
-
-    // Run on mount and resize
-    initializePosition()
-    window.addEventListener('resize', initializePosition)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', initializePosition)
-    }
-  }, [isSticky])
-
-  // Measure bar height for smooth spacer transitions
-  useEffect(() => {
-    const updateHeight = () => {
-      if (innerRef.current) {
-        const rect = innerRef.current.getBoundingClientRect()
-        // Only update height if there's a significant change to prevent micro-adjustments
-        const newHeight = rect.height
-        if (Math.abs(newHeight - barHeight) > 2) {
-          setBarHeight(newHeight)
-        }
-      }
-    }
-    
-    // Debounce height updates
-    let timeoutId: NodeJS.Timeout
-    const debouncedUpdateHeight = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(updateHeight, 50)
-    }
-    
-    updateHeight()
-    const resizeObserver = new ResizeObserver(debouncedUpdateHeight)
-    if (innerRef.current) {
-      resizeObserver.observe(innerRef.current)
-    }
-    
-    return () => {
-      resizeObserver.disconnect()
-      clearTimeout(timeoutId)
-    }
-  }, [activeFilters, isSticky, barHeight])
 
   const toggleFilter = (filterId: string, value?: string) => {
     if (filters.find(f => f.id === filterId)?.type === 'toggle') {
@@ -471,7 +388,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full sticky top-0 z-[9999]">
       <div 
         ref={containerRef}
         className={`w-full transition-all duration-200 ease-out ${
@@ -485,18 +402,16 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       >
         <div 
           ref={innerRef}
-          className={`max-w-7xl mx-auto px-4 transition-all duration-300 ease-out ${
+          className={`max-w-7xl mx-auto sm:px-6 lg:px-8 transition-all duration-300 ease-out bg-white border-b border-gray-100/20 ${
             isSticky ? 'py-3' : 'py-4'
           }`}
           style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}
         >
-          <div className="bg-white" style={{ overflow: 'visible' }}>
+          <div style={{ overflow: 'visible' }}>
             {/* Top level tabs - always visible */}
 
             {/* Main filters row */}
-            <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out ${
-              isSticky ? 'mb-0' : 'mb-4'
-            }`}>
+            <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out`}>
               <div className="flex items-center gap-3 flex-1">
               {filters.map((filter) => (
                 <div key={filter.id} className="relative z-20">
@@ -521,6 +436,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                     {/* Dropdown menu */}
                     {openDropdown === filter.id && (
                       <div 
+
                         className="absolute left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
                         style={{ 
                           top: '100%',
@@ -676,7 +592,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
                          {/* Active filter chips - all in one line - hidden when sticky */}
              {getActiveFilterCount() > 0 && !isSticky && (
-               <div className="flex flex-wrap items-center gap-2">
+               <div className="flex flex-wrap items-center gap-2 mt-4">
                  {/* Main filters */}
             {Object.entries(activeFilters).map(([filterId, values]) => 
                    values.map((value) => {
@@ -742,14 +658,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
         }}
       />
 
-      {/* Click outside to close dropdown */}
-      {openDropdown && (
-        <div
-          className="fixed inset-0"
-          style={{ zIndex: 40 }}
-          onClick={() => setOpenDropdown(null)}
-        />
-      )}
+      
     </div>
   )
 }

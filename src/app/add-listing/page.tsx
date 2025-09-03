@@ -425,7 +425,7 @@ export default function AddListingPage() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/70 shadow-sm p-8 text-center">
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login required</h1>
             <p className="text-gray-600 mb-6">Please login to add a new listing.</p>
             <Button
@@ -449,15 +449,15 @@ export default function AddListingPage() {
       <Navbar />
       
       {/* Fullscreen Layout with Toggle */}
-      <main className="h-screen flex flex-col pt-16">
+      <main className="h-screen flex flex-col pt-4">
         {/* Header Bar */}
-        <div className="bg-gray-50">
-          <div className="max-w-5xl mx-auto px-6 py-4">
+        <div className="bg-grey/95 backdrop-blur-sm  sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto py-4">
             <div className="flex items-center justify-between">
               {/* Toggle Tabs - Refined Design */}
               <div className="flex items-center">
                 <div
-                  className="bg-white rounded-xl p-1 border border-gray-200 shadow-sm"
+                  className="flex gap-2 items-center bg-gray-50/80 backdrop-blur-sm rounded-xl p-1.5 border border-gray-200/70 shadow-sm"
                   role="tablist"
                   aria-label="Listing input mode"
                 >
@@ -466,10 +466,10 @@ export default function AddListingPage() {
                     role="tab"
                     aria-selected={activeTab === 'ai'}
                     onClick={() => setActiveTab('ai')}
-                    className={`flex items-center justify-center min-w-[140px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
+                    className={`flex items-center justify-center min-w-[142px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
                       activeTab === 'ai'
-                        ? 'bg-purple-500 text-white shadow-sm'
-                        : 'text-gray-700 hover:text-purple-600 hover:bg-white'
+                        ? 'bg-purple-500 text-white shadow-md'
+                        : 'text-gray-700 hover:text-purple-600 hover:bg-white/80'
                     }`}
                   >
                     <Sparkles className={`h-4 w-4 mr-2 transition-colors duration-200 ${
@@ -482,10 +482,10 @@ export default function AddListingPage() {
                     role="tab"
                     aria-selected={activeTab === 'manual'}
                     onClick={() => setActiveTab('manual')}
-                    className={`flex items-center justify-center min-w-[140px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
+                    className={`flex items-center justify-center min-w-[142px] px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500/30 focus-visible:outline-none ${
                       activeTab === 'manual'
-                        ? 'bg-purple-500 text-white shadow-sm'
-                        : 'text-gray-700 hover:text-purple-600 hover:bg-white'
+                        ? 'bg-purple-500 text-white shadow-md'
+                        : 'text-gray-700 hover:text-purple-600 hover:bg-white/80'
                     }`}
                   >
                     <Home className={`h-4 w-4 mr-2 transition-colors duration-200 ${
@@ -516,10 +516,10 @@ export default function AddListingPage() {
           {activeTab === 'ai' ? (
             /* AI Listing Creator View */
             <div className="h-full overflow-y-auto bg-gray-50">
-              <div className="max-w-4xl mx-auto p-6">                
+              <div className="w-full sm:px-6 lg:px-8">                
                 <div className="space-y-6">
                   {/* AI Input Section */}
-                  <Card className="shadow-sm border-gray-200 bg-white">
+                  <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                     <CardContent className="p-6">
                       <div className="space-y-5">
                         <div>
@@ -528,7 +528,7 @@ export default function AddListingPage() {
                           </h3>
                           
                           {/* Input Type Toggle */}
-                          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full sm:max-w-md">
+                          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 max-w-sm">
                             <button
                               type="button"
                               onClick={() => setInputType('text')}
@@ -613,7 +613,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                           <Button
                             onClick={handleAutoFill}
                             disabled={!canGenerate || isProcessing}
-                            className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+                            className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             {isProcessing ? (
                               <>
@@ -643,7 +643,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   {/* Left Column */}
                   <div className="space-y-5">
                     {/* Basic Information */}
-                    <Card className="shadow-sm border-gray-200 bg-white">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Property Details</CardTitle>
                       </CardHeader>
@@ -773,7 +773,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Pricing */}
-                    <Card className="shadow-sm border-gray-200 bg-white">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                           <DollarSign className="h-5 w-5 text-purple-500" />
@@ -835,7 +835,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   {/* Right Column */}
                   <div className="space-y-5">
                     {/* Highlights/Amenities */}
-                    <Card className="shadow-sm border-gray-200 bg-white">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Highlights & Amenities</CardTitle>
                       </CardHeader>
@@ -874,7 +874,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Flatmate Preferences */}
-                    <Card className="shadow-sm border-gray-200 bg-white">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Flatmate Preferences</CardTitle>
                       </CardHeader>
@@ -947,7 +947,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Contact & Images */}
-                    <Card className="shadow-sm border-gray-200 bg-white">
+                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold">Contact & Images</CardTitle>
                       </CardHeader>

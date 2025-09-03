@@ -116,14 +116,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-white relative overflow-x-hidden" suppressHydrationWarning>
+    <div className="h-screen bg-white relative overflow-x-hidden" suppressHydrationWarning>
       {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -right-20 w-96 h-96 bg-purple-100/20 rounded-full blur-3xl"></div>
         <div className="absolute top-1/3 -left-32 w-80 h-80 bg-blue-100/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-200/20 rounded-full blur-2xl"></div>
         <div className="absolute bottom-10 -left-20 w-72 h-72 bg-gradient-to-r from-purple-100/20 to-pink-100/20 rounded-full blur-3xl"></div>
-      </div>
+      </div> */}
       <Navbar />
       
       {/* Hero Section (collapses when filters stick) */}
@@ -135,7 +135,7 @@ export default function Home() {
       <FilterBar onFiltersChange={handleFiltersChange} />
 
       {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-6">
         {/* Results count and refresh button */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
