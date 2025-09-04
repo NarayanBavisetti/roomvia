@@ -32,24 +32,24 @@ export default function ChatSidebar() {
       const ids = Array.from(new Set(chatList.map(c => c.other_user_id))).filter(Boolean)
       if (ids.length === 0) return
       const map: Record<string, { name: string | null; avatar_url: string | null }> = {}
-      // Try profiles keyed by id (profiles.id references auth.users.id)
-      const { data, error } = await supabase
+      // Fetch by id
+      const byId = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url')
         .in('id', ids)
-      let finalData: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null = data
-      if (error) {
-        // Some projects use profiles.user_id instead
-        const retry = await supabase
-          .from('profiles')
-          .select('user_id, full_name, avatar_url')
-          .in('user_id', ids)
-        finalData = retry.data as { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null
-      }
-      ;(finalData || []).forEach((row: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }) => {
-        const key = row.id || row.user_id
-        if (key) {
-          map[key] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
+      ;(byId.data || []).forEach((row: { id?: string; full_name?: string; avatar_url?: string }) => {
+        if (row.id) {
+          map[row.id] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
+        }
+      })
+      // Also fetch by user_id (for schemas where profiles.user_id references auth.users.id)
+      const byUserId = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', ids)
+      ;(byUserId.data as { user_id?: string; full_name?: string; avatar_url?: string }[] | null || []).forEach((row) => {
+        if (row.user_id) {
+          map[row.user_id] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
         }
       })
       setUserProfiles(prev => ({ ...prev, ...map }))
@@ -60,7 +60,7 @@ export default function ChatSidebar() {
   if (!isSidebarOpen) return null
 
   const handleChatClick = (otherUserId: string, otherUserEmail: string) => {
-    const display = userProfiles[otherUserId]?.name || otherUserEmail
+    const display = userProfiles[otherUserId]?.name || (otherUserEmail ? getDisplayName(otherUserEmail) : 'User')
     openChat(otherUserId, display || otherUserEmail, 'existing-chat-placeholder')
   }
 
@@ -143,7 +143,7 @@ export default function ChatSidebar() {
                     {/* Chat Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-gray-900 truncate">
+                        <h3 className="text-[15px] font-semibold text-gray-900 truncate">
                           {userProfiles[chat.other_user_id]?.name || (chat.other_user_email ? getDisplayName(chat.other_user_email) : 'User')}
                         </h3>
                         {chat.latest_message_time && (
