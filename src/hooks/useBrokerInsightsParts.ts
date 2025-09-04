@@ -125,3 +125,4 @@ export function useLocationPreferences(
     gcTime: 10 * 60 * 1000,
   });
 }
+

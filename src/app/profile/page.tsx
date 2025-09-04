@@ -10,11 +10,15 @@ import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { User, Settings, Shield, CheckCircle } from 'lucide-react'
+import { Image as ImageIcon } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { validateImageFile } from '@/lib/cloudinary'
 
 interface Profile {
   name: string | null
   account_type: 'normal' | 'broker'
   locked: boolean
+  avatar_url?: string | null
 }
 
 export default function ProfilePage() {
@@ -29,6 +33,8 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [supportsName, setSupportsName] = useState(true)
+  const [supportsAvatar, setSupportsAvatar] = useState(true)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,31 +50,40 @@ export default function ProfilePage() {
         // First try selecting with name column
         let profQuery = await supabase
           .from('profiles')
-          .select('name, account_type, locked')
+          .select('name, account_type, locked, avatar_url')
           .eq('user_id', user.id)
           .maybeSingle()
 
         if (profQuery.error) {
           // If name column does not exist, fall back without it
           const msg = String(profQuery.error.message || '')
-          if (msg.toLowerCase().includes("'name' column") || msg.toLowerCase().includes('name') ) {
+          const lower = msg.toLowerCase()
+          if (lower.includes("'name' column") || lower.includes('name')) {
             setSupportsName(false)
-            profQuery = await supabase
-              .from('profiles')
-              .select('account_type, locked')
-              .eq('user_id', user.id)
-              .maybeSingle()
-          } else {
+          }
+          if (lower.includes('avatar_url')) {
+            setSupportsAvatar(false)
+          }
+          const cols: string[] = ['account_type', 'locked']
+          if (supportsName) cols.unshift('name')
+          if (supportsAvatar) cols.push('avatar_url')
+          profQuery = await supabase
+            .from('profiles')
+            .select(cols.join(', '))
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (!profQuery.data) {
             console.error('Profile query error:', profQuery.error)
           }
         }
 
         if (profQuery.data) {
-          const prof = profQuery.data as { name?: string; account_type?: string; locked?: boolean }
+          const prof = profQuery.data as { name?: string; account_type?: string; locked?: boolean; avatar_url?: string }
           setProfile({
             name: (supportsName ? (prof.name || '') : ''),
             account_type: (prof.account_type as 'normal' | 'broker') || 'normal',
             locked: !!prof.locked,
+            avatar_url: supportsAvatar ? (prof.avatar_url || null) : null,
           })
           return
         }
@@ -80,8 +95,9 @@ export default function ProfilePage() {
           locked: false,
         }
         if (supportsName) insertPayload.name = null
+        if (supportsAvatar) insertPayload.avatar_url = null
 
-        const selectColumns = supportsName ? 'name, account_type, locked' : 'account_type, locked'
+        const selectColumns = [supportsName ? 'name' : null, 'account_type', 'locked', supportsAvatar ? 'avatar_url' : null].filter(Boolean).join(', ')
 
         const { data: newProf, error: createErr } = await supabase
           .from('profiles')
@@ -95,11 +111,12 @@ export default function ProfilePage() {
         }
 
         if (newProf) {
-          const np = newProf as { name?: string; account_type?: string; locked?: boolean }
+          const np = newProf as { name?: string; account_type?: string; locked?: boolean; avatar_url?: string }
           setProfile({
             name: (supportsName ? (np.name || '') : ''),
             account_type: (np.account_type as 'normal' | 'broker') || 'normal',
             locked: !!np.locked,
+            avatar_url: supportsAvatar ? (np.avatar_url || null) : null,
           })
         }
       } catch (err) {
@@ -109,7 +126,7 @@ export default function ProfilePage() {
     }
 
     loadProfile()
-  }, [user, supportsName])
+  }, [user, supportsName, supportsAvatar])
 
   const handleSaveProfile = async () => {
     if (!user) return
@@ -126,6 +143,7 @@ export default function ProfilePage() {
         updated_at: new Date().toISOString(),
       }
       if (supportsName) payload.name = profile.name || null
+      if (supportsAvatar) payload.avatar_url = profile.avatar_url || null
 
       const { error: updateErr } = await supabase
         .from('profiles')
@@ -160,6 +178,7 @@ export default function ProfilePage() {
         updated_at: new Date().toISOString(),
       }
       if (supportsName) payload.name = profile.name || null
+      if (supportsAvatar) payload.avatar_url = profile.avatar_url || null
 
       const { error: updateErr } = await supabase
         .from('profiles')
@@ -177,6 +196,45 @@ export default function ProfilePage() {
       console.error('Account lock error:', err)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid image file')
+      return
+    }
+    try {
+      setUploadingAvatar(true)
+      setError('')
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        body: formData
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed')
+      const url: string = json.image?.url
+      if (!url) throw new Error('No URL returned')
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+      if (updateErr) throw updateErr
+      setProfile(prev => ({ ...prev, avatar_url: url }))
+      setSuccess('Profile photo updated!')
+      setTimeout(() => setSuccess(''), 2500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image')
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
     }
   }
 
@@ -241,6 +299,62 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {supportsAvatar && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Profile Photo</Label>
+                  <div className="mt-2 flex items-center gap-4">
+                    <Avatar className="h-14 w-14">
+                      {profile.avatar_url ? <AvatarImage src={profile.avatar_url} alt={profile.name || 'Profile'} /> : null}
+                      <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <label className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${uploadingAvatar ? 'bg-gray-200 text-gray-500' : 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-700'}`}>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploadingAvatar} onChange={async (e) => {
+                          if (!user || !e.target.files || e.target.files.length === 0) return
+                          const file = e.target.files[0]
+                          const validation = validateImageFile(file)
+                          if (!validation.valid) {
+                            setError(validation.error || 'Invalid image file')
+                            return
+                          }
+                          try {
+                            setUploadingAvatar(true)
+                            setError('')
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            const { data: { session } } = await supabase.auth.getSession()
+                            const res = await fetch('/api/upload', {
+                              method: 'POST',
+                              headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+                              body: formData
+                            })
+                            const json = await res.json()
+                            if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed')
+                            const url: string = json.image?.url
+                            if (!url) throw new Error('No URL returned')
+                            const { error: updateErr } = await supabase
+                              .from('profiles')
+                              .update({ avatar_url: url, updated_at: new Date().toISOString() })
+                              .eq('user_id', user.id)
+                            if (updateErr) throw updateErr
+                            setProfile(prev => ({ ...prev, avatar_url: url }))
+                            setSuccess('Profile photo updated!')
+                            setTimeout(() => setSuccess(''), 2500)
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to upload image')
+                          } finally {
+                            setUploadingAvatar(false)
+                            e.currentTarget.value = ''
+                          }
+                        }} />
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        {uploadingAvatar ? 'Uploading...' : 'Change Photo'}
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">JPG/PNG/WebP, up to 5MB</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                 <Input

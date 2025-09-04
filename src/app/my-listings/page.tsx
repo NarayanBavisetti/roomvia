@@ -204,7 +204,7 @@ export default function MyListingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Header */}
@@ -217,13 +217,6 @@ export default function MyListingsPage() {
               </h1>
               <p className="text-gray-600">Manage all your property listings in one place</p>
             </div>
-            <Button
-              onClick={() => window.location.href = '/add-listing'}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add New Listing
-            </Button>
           </div>
         </div>
 
@@ -436,43 +429,6 @@ export default function MyListingsPage() {
               </Card>
             ))}
           </div>
-        )}
-
-        {/* Quick Actions */}
-        {listings.length > 0 && (
-          <Card className="mt-8 shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="justify-start border-gray-300"
-                  onClick={() => window.location.href = '/add-listing'}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Listing
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start border-gray-300"
-                  onClick={() => window.location.href = '/profile'}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  View Profile
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start border-gray-300"
-                  onClick={() => window.location.href = '/'}
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Browse Properties
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         )}
       </main>
     </div>

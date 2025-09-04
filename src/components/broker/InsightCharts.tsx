@@ -27,20 +27,6 @@ const COLORS = [
   '#6B7280'  // Gray
 ]
 
-// Consistent chart typography styles (match platform)
-const CHART_FONT_FAMILY = 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-const TICK_STYLE = { fill: '#4B5563', fontSize: 12, fontFamily: CHART_FONT_FAMILY }
-const TOOLTIP_CONTENT_STYLE: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #E5E7EB',
-  borderRadius: 8,
-  color: '#111827',
-  fontFamily: CHART_FONT_FAMILY,
-  fontSize: 12,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
-}
-const LEGEND_STYLE: React.CSSProperties = { color: '#374151', fontFamily: CHART_FONT_FAMILY, fontSize: 12 }
-
 interface PropertyTypeChartProps {
   data: Array<{ property_type: string; search_count: number }>
 }
@@ -70,8 +56,7 @@ export function PropertyTypeChart({ data }: PropertyTypeChartProps) {
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </Pie>
-          <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={{ color: '#374151' }} />
-          <Legend wrapperStyle={LEGEND_STYLE} />
+          <Tooltip />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -93,17 +78,19 @@ export function PriceRangeChart({ data }: PriceRangeChartProps) {
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
-          <XAxis 
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
             dataKey="range"
             angle={-45}
             textAnchor="end"
             height={80}
-            tick={TICK_STYLE}
-            tickLine={false}
+            fontSize={12}
           />
-          <YAxis tick={TICK_STYLE} tickLine={false} axisLine={{ stroke: '#E5E7EB' }} />
-          <Tooltip formatter={(value) => [value, 'Searches']} labelStyle={{ color: '#374151' }} contentStyle={TOOLTIP_CONTENT_STYLE} />
+          <YAxis />
+          <Tooltip
+            formatter={(value) => [value, 'Searches']}
+            labelStyle={{ color: '#374151' }}
+          />
           <Bar dataKey="count" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -120,12 +107,17 @@ interface LocationChartProps {
 }
 
 export function LocationChart({ data }: LocationChartProps) {
+  console.log('LocationChart received data:', data) // Temporary debug
+
   const topLocations = data.slice(0, 6) // Show top 6 locations
   const chartData = topLocations.map((item, index) => ({
     name: item.area,
     searches: item.search_count,
     fill: COLORS[index % COLORS.length]
   }))
+
+  console.log('LocationChart chartData:', chartData) // Temporary debug
+
   // Show message if no data
   if (!data || data.length === 0) {
     return (
@@ -141,22 +133,24 @@ export function LocationChart({ data }: LocationChartProps) {
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart 
+        <BarChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
         >
-          <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name" 
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="name"
             angle={-45}
             textAnchor="end"
             height={80}
-            tick={TICK_STYLE}
+            fontSize={12}
             interval={0}
-            tickLine={false}
           />
-          <YAxis tick={TICK_STYLE} tickLine={false} axisLine={{ stroke: '#E5E7EB' }} />
-          <Tooltip formatter={(value) => [value, 'Searches']} labelStyle={{ color: '#374151' }} contentStyle={TOOLTIP_CONTENT_STYLE} />
+          <YAxis />
+          <Tooltip
+            formatter={(value) => [value, 'Searches']}
+            labelStyle={{ color: '#374151' }}
+          />
           <Bar dataKey="searches" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -197,8 +191,8 @@ export function AmenitiesChart({ data }: AmenitiesChartProps) {
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </Pie>
-          <Tooltip formatter={(value) => [value, 'Searches']} contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={{ color: '#374151' }} />
-          <Legend wrapperStyle={LEGEND_STYLE} />
+          <Tooltip formatter={(value) => [value, 'Searches']} />
+          <Legend />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -213,7 +207,7 @@ interface AmenityTagsProps {
 
 export function AmenityTags({ amenities, maxDisplay = 10 }: AmenityTagsProps) {
   const displayAmenities = amenities.slice(0, maxDisplay)
-  
+
   return (
     <div className="flex flex-wrap gap-2">
       {displayAmenities.map((amenity, index) => (
@@ -221,8 +215,8 @@ export function AmenityTags({ amenities, maxDisplay = 10 }: AmenityTagsProps) {
           key={amenity.amenity}
           className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg text-sm font-medium text-gray-800 hover:shadow-sm transition-shadow"
         >
-          <div 
-            className="w-3 h-3 rounded-full" 
+          <div
+            className="w-3 h-3 rounded-full"
             style={{ backgroundColor: COLORS[index % COLORS.length] }}
           />
           <span>{amenity.amenity}</span>
