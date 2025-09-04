@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { ChevronDown, X, SlidersHorizontal, Home, Building2, Utensils, Cigarette, CigaretteOff, Shield, Waves, Dumbbell, Snowflake, Bath, Archive, Package, Fan, Wifi, Car, Zap, Droplets, ShirtIcon } from 'lucide-react'
+import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { useSavedFilters, type SavedFilter } from '@/hooks/useSavedFilters'
 
 interface FilterOption {
   id: string
@@ -103,115 +105,85 @@ const moreFilters = {
   }
 }
 
-const sortOptions = [
-  'Distance',
-  'Price: Low to High',
-  'Price: High to Low',
-  'Newest First',
-  'Most Popular'
-]
 
 interface FilterBarProps {
   onFiltersChange?: (filters: Record<string, string[]>) => void
+  searchLocation?: string
+  searchArea?: string
 }
 
-export default function FilterBar({ onFiltersChange }: FilterBarProps) {
-  const [isSticky, setIsSticky] = useState(false)
+
+export default function FilterBar({ onFiltersChange, searchLocation, searchArea }: FilterBarProps) {
+  const { user } = useAuth()
+  const [isSticky] = useState(false)
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [barHeight, setBarHeight] = useState(0)
   const [budgetRange, setBudgetRange] = useState<[number, number]>([6899, 200000])
-  const [activeTab, setActiveTab] = useState<'pg_hostels' | 'flats'>('pg_hostels')
-  const [selectedSort, setSelectedSort] = useState('Distance')
+  const [activeTab] = useState<'flats' | 'flats'>('flats')
   const [moreFiltersState, setMoreFiltersState] = useState<Record<string, string[]>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
-  const originalPosition = useRef<number>(0)
 
+  // Use the saved filters hook
+  const {
+    savedFilters,
+    error: savedFiltersError,
+    debouncedSave,
+    clearFilters: clearSavedFilters
+  } = useSavedFilters({
+    searchLocation,
+    searchArea,
+    autoLoadOnMount: true,
+    debounceDelay: 1000
+  })
+
+  // Auto-apply most recent filter when saved filters are loaded
   useEffect(() => {
-    let ticking = false
-    const threshold = 5 // Add small threshold to prevent flickering
-
-    const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          if (containerRef.current) {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-            
-            // Set initial position only once
-            if (originalPosition.current === 0) {
-              const rect = containerRef.current.getBoundingClientRect()
-              originalPosition.current = scrollTop + rect.top
-            }
-            
-            // Use threshold to prevent flickering
-            const shouldBeSticky = scrollTop >= (originalPosition.current - threshold)
-            
-            // Only update state if there's a real change
-            if (shouldBeSticky !== isSticky) {
-              setIsSticky(shouldBeSticky)
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('filters-sticky-change', { detail: { sticky: shouldBeSticky } }))
-              }
-            }
-          }
-          ticking = false
-        })
-        ticking = true
-      }
+    if (savedFilters.length > 0) {
+      const mostRecentFilter = savedFilters[0]
+      console.log('Auto-applying most recent filter:', mostRecentFilter)
+      applyFiltersSilently(mostRecentFilter)
     }
+  }, [savedFilters]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Initial setup
-    const initializePosition = () => {
-      if (containerRef.current && originalPosition.current === 0) {
-        const rect = containerRef.current.getBoundingClientRect()
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-        originalPosition.current = scrollTop + rect.top
-      }
+  const applyFiltersSilently = (savedFilter: SavedFilter) => {
+    // Apply filters without triggering onFiltersChange to avoid infinite loops
+    if (savedFilter.min_rent && savedFilter.max_rent) {
+      setBudgetRange([savedFilter.min_rent, savedFilter.max_rent])
     }
-
-    // Run on mount and resize
-    initializePosition()
-    window.addEventListener('resize', initializePosition)
-    window.addEventListener('scroll', handleScroll, { passive: true })
     
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', initializePosition)
-    }
-  }, [isSticky])
-
-  // Measure bar height for smooth spacer transitions
-  useEffect(() => {
-    const updateHeight = () => {
-      if (innerRef.current) {
-        const rect = innerRef.current.getBoundingClientRect()
-        // Only update height if there's a significant change to prevent micro-adjustments
-        const newHeight = rect.height
-        if (Math.abs(newHeight - barHeight) > 2) {
-          setBarHeight(newHeight)
+    if (savedFilter.filters) {
+      // Separate main filters from more filters
+      const mainFilterIds = filters.map(f => f.id)
+      const mainFilters: Record<string, string[]> = {}
+      const moreFilters: Record<string, string[]> = {}
+      
+      Object.entries(savedFilter.filters).forEach(([key, value]) => {
+        if (mainFilterIds.includes(key)) {
+          mainFilters[key] = value as string[]
+        } else {
+          moreFilters[key] = value as string[]
         }
-      }
+      })
+      
+      setActiveFilters(mainFilters)
+      setMoreFiltersState(moreFilters)
+      
+      // Now trigger onFiltersChange with the loaded filters
+      onFiltersChange?.({ ...mainFilters, ...moreFilters })
     }
-    
-    // Debounce height updates
-    let timeoutId: NodeJS.Timeout
-    const debouncedUpdateHeight = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(updateHeight, 50)
-    }
-    
-    updateHeight()
-    const resizeObserver = new ResizeObserver(debouncedUpdateHeight)
-    if (innerRef.current) {
-      resizeObserver.observe(innerRef.current)
-    }
-    
-    return () => {
-      resizeObserver.disconnect()
-      clearTimeout(timeoutId)
-    }
-  }, [activeFilters, isSticky, barHeight])
+  }
+
+  // Helper function to save filters (supports passing freshly computed filters to avoid stale state)
+  const saveCurrentFilters = useCallback((filtersOverride?: Record<string, string[]>) => {
+    const allFilters = filtersOverride ?? { ...activeFilters, ...moreFiltersState }
+    debouncedSave(allFilters, {
+      property_type: activeTab,
+      min_rent: budgetRange[0],
+      max_rent: budgetRange[1],
+      amenities: (filtersOverride ?? moreFiltersState).amenities || []
+    })
+  }, [activeFilters, moreFiltersState, debouncedSave, activeTab, budgetRange])
 
   const toggleFilter = (filterId: string, value?: string) => {
     if (filters.find(f => f.id === filterId)?.type === 'toggle') {
@@ -223,6 +195,12 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       }
       setActiveFilters(newFilters)
       onFiltersChange?.(newFilters)
+      
+      // Auto-save filters with freshly computed state if user is logged in
+      if (user) {
+        const merged = { ...newFilters, ...moreFiltersState }
+        saveCurrentFilters(merged)
+      }
     } else if (value) {
       const newFilters = { ...activeFilters }
       if (!newFilters[filterId]) {
@@ -240,8 +218,14 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       
       setActiveFilters(newFilters)
       onFiltersChange?.(newFilters)
+      
+      // Auto-save filters with freshly computed state if user is logged in
+      if (user) {
+        const merged = { ...newFilters, ...moreFiltersState }
+        saveCurrentFilters(merged)
+      }
     }
-    setOpenDropdown(null)
+    // Keep dropdown open for multiple selections - don't close it
   }
 
   const handleBudgetChange = (range: [number, number]) => {
@@ -250,13 +234,29 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     newFilters['budget'] = [`₹${range[0]} - ₹${range[1]}`]
     setActiveFilters(newFilters)
     onFiltersChange?.(newFilters)
+    
+    // Auto-save filters with freshly computed state if user is logged in
+    if (user) {
+      const merged = { ...newFilters, ...moreFiltersState }
+      saveCurrentFilters(merged)
+    }
   }
 
-  const clearAllFilters = () => {
+  const clearAllFilters = async () => {
     setActiveFilters({})
     setBudgetRange([6899, 200000])
     setMoreFiltersState({})
     onFiltersChange?.({})
+    
+    // Delete the user's saved filters from database using the hook
+    if (user) {
+      try {
+        await clearSavedFilters()
+        console.log('Cleared filters from database')
+      } catch (error) {
+        console.error('Error clearing filters from database:', error)
+      }
+    }
   }
 
   const getActiveFilterCount = () => {
@@ -292,7 +292,13 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     
     setMoreFiltersState(newMoreFilters)
     // Combine with main filters for callback
-    onFiltersChange?.({ ...activeFilters, ...newMoreFilters })
+    const combined = { ...activeFilters, ...newMoreFilters }
+    onFiltersChange?.(combined)
+    
+    // Auto-save filters with freshly computed state if user is logged in
+    if (user) {
+      saveCurrentFilters(combined)
+    }
   }
 
   const BudgetRangeSlider = () => {
@@ -303,7 +309,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     // Update local range when budgetRange prop changes
     useEffect(() => {
       setLocalRange(budgetRange)
-    }, [budgetRange])
+    }, [budgetRange]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const getPercentage = (value: number) => {
       const min = 6899
@@ -427,51 +433,13 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
 
         </div>
         
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-          <button
-            onClick={() => {
-              setLocalRange([6899, 200000])
-              handleBudgetChange([6899, 200000])
-              setOpenDropdown(null)
-            }}
-            className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
-          >
-            Clear All
-          </button>
-          <button
-            onClick={() => {
-              handleBudgetChange(localRange)
-              setOpenDropdown(null)
-            }}
-            className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
-          >
-            Apply
-          </button>
-        </div>
       </div>
     )
   }
 
-  const getActiveFiltersByCategory = () => {
-    const categoryMap: Record<string, { label: string; items: string[] }> = {}
-    
-    Object.entries(activeFilters).forEach(([filterId, values]) => {
-      const filter = filters.find(f => f.id === filterId)
-      if (filter && values.length > 0) {
-        const categoryLabel = filter.label
-        if (!categoryMap[categoryLabel]) {
-          categoryMap[categoryLabel] = { label: categoryLabel, items: [] }
-        }
-        categoryMap[categoryLabel].items.push(...values.map(v => v === 'true' ? 'Allowed' : v))
-      }
-    })
-    
-    return categoryMap
-  }
 
   return (
-    <div className="w-full">
+    <div className="w-full sticky top-0 z-[9999]">
       <div 
         ref={containerRef}
         className={`w-full transition-all duration-200 ease-out ${
@@ -485,18 +453,16 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       >
         <div 
           ref={innerRef}
-          className={`max-w-7xl mx-auto px-4 transition-all duration-300 ease-out ${
+          className={`max-w-7xl mx-auto sm:px-6 lg:px-8 transition-all duration-300 ease-out bg-white border-b border-gray-100/20 ${
             isSticky ? 'py-3' : 'py-4'
           }`}
           style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}
         >
-          <div className="bg-white" style={{ overflow: 'visible' }}>
+          <div style={{ overflow: 'visible' }}>
             {/* Top level tabs - always visible */}
 
             {/* Main filters row */}
-            <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out ${
-              isSticky ? 'mb-0' : 'mb-4'
-            }`}>
+            <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out`}>
               <div className="flex items-center gap-3 flex-1">
               {filters.map((filter) => (
                 <div key={filter.id} className="relative z-20">
@@ -521,7 +487,8 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                     {/* Dropdown menu */}
                     {openDropdown === filter.id && (
                       <div 
-                        className="absolute left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
+
+                        className="absolute z-20 left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
                         style={{ 
                           top: '100%',
                           marginTop: '8px',
@@ -600,15 +567,7 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Header */}
-                      <div className="px-5 py-4 border-b border-gray-100">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-bold text-gray-900">Filters</h3>
-                          <button onClick={() => setOpenDropdown(null)} className="p-1.5 hover:bg-gray-50 rounded-full transition-colors">
-                            <X className="h-4 w-4 text-gray-400" />
-                          </button>
-                        </div>
-                      </div>
+
 
                       {/* Scrollable content */}
                       <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'hidden' }} className="px-5 py-4 space-y-6">
@@ -641,24 +600,6 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                         ))}
                       </div>
 
-                      {/* Footer */}
-                      <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-                        <button
-                          onClick={() => {
-                            setMoreFiltersState({})
-                            onFiltersChange?.(activeFilters)
-                          }}
-                          className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-full transition-all duration-200"
-                        >
-                          Clear All
-                        </button>
-                        <button
-                          onClick={() => setOpenDropdown(null)}
-                          className="px-5 py-2 bg-purple-500 text-white text-xs font-medium rounded-full hover:bg-purple-600 transition-all duration-200 shadow-md"
-                        >
-                          Apply Filters
-                        </button>
-                      </div>
                     </div>
             )}
         </div>
@@ -674,9 +615,16 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
                </div>
             </div>
 
+                         {/* Error message for saved filters */}
+             {savedFiltersError && (
+               <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                 <span>⚠️ Error with saved filters: {savedFiltersError}</span>
+               </div>
+             )}
+
                          {/* Active filter chips - all in one line - hidden when sticky */}
              {getActiveFilterCount() > 0 && !isSticky && (
-               <div className="flex flex-wrap items-center gap-2">
+               <div className="flex flex-wrap items-center gap-2 mt-4">
                  {/* Main filters */}
             {Object.entries(activeFilters).map(([filterId, values]) => 
                    values.map((value) => {
@@ -738,18 +686,15 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
       <div 
         className="transition-all duration-200 ease-out overflow-hidden"
         style={{
-          height: isSticky ? `${barHeight}px` : '0px'
+          height: isSticky ? '80px' : '0px'
         }}
       />
 
-      {/* Click outside to close dropdown */}
-      {openDropdown && (
-        <div
-          className="fixed inset-0"
-          style={{ zIndex: 40 }}
-          onClick={() => setOpenDropdown(null)}
-        />
-      )}
+
+{openDropdown && (
+<div className='z-[19] absolute inset-0' onClick={() => setOpenDropdown(null)}/>
+)}
+      
     </div>
   )
 }

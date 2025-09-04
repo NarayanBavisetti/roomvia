@@ -24,6 +24,9 @@ export type Flat = {
   id: string;
   title: string;
   location: string;
+  area?: string;
+  city?: string;
+  state?: string;
   rent: number;
   image_url: string;
   images?: Array<{ url: string; public_id?: string; is_primary?: boolean }>;

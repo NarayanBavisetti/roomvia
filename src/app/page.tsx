@@ -8,12 +8,11 @@ import FlatCard from '@/components/flat-card'
 import FlatCardSkeleton from '@/components/flat-card-skeleton'
 import EnhancedMapView from '@/components/enhanced-map-view'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertCircle, MapPin, Search, X } from 'lucide-react'
+import { RefreshCw, AlertCircle } from 'lucide-react'
 import { useFlatsData } from '@/hooks/useFlatsData'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
 import type { State, Area } from '@/lib/api'
-import { Analytics } from "@vercel/analytics/next"
 
 // All data now comes from the database through the useFlatsData hook
 
@@ -24,7 +23,7 @@ export default function Home() {
   const [searchArea, setSearchArea] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [mapSearchQuery, setMapSearchQuery] = useState('')
+  const [mapSearchQuery] = useState('')
 
   // Set mounted state
   useEffect(() => {
@@ -78,6 +77,9 @@ export default function Home() {
       id: flat.id,
       title: flat.title,
       location: flat.location,
+      area: flat.area,
+      city: flat.city,
+      state: flat.state,
       imageUrl: flat.image_url,
       price: flat.rent,
       roomType: flat.room_type,
@@ -116,14 +118,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-white relative overflow-x-hidden" suppressHydrationWarning>
+    <div className="h-screen bg-white relative overflow-x-hidden" suppressHydrationWarning>
       {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -right-20 w-96 h-96 bg-purple-100/20 rounded-full blur-3xl"></div>
         <div className="absolute top-1/3 -left-32 w-80 h-80 bg-blue-100/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-200/20 rounded-full blur-2xl"></div>
         <div className="absolute bottom-10 -left-20 w-72 h-72 bg-gradient-to-r from-purple-100/20 to-pink-100/20 rounded-full blur-3xl"></div>
-      </div>
+      </div> */}
       <Navbar />
       
       {/* Hero Section (collapses when filters stick) */}
@@ -132,10 +134,14 @@ export default function Home() {
       </section>
 
       {/* Filter Bar */}
-      <FilterBar onFiltersChange={handleFiltersChange} />
+      <FilterBar 
+        onFiltersChange={handleFiltersChange} 
+        searchLocation={searchLocation}
+        searchArea={searchArea}
+      />
 
       {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-6">
         {/* Results count and refresh button */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
@@ -257,28 +263,7 @@ export default function Home() {
           
           <div className="lg:col-span-1">
             <div className="sticky top-28">
-              {/* Map Search Box - Above the map */}
-              <div className="mb-4">
-                <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/70 flex items-center h-12 px-4 gap-3">
-                  <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search location or enter address"
-                    value={mapSearchQuery}
-                    onChange={(e) => setMapSearchQuery(e.target.value)}
-                    className="flex-1 text-sm text-gray-900 placeholder-gray-500 border-none outline-none bg-transparent"
-                  />
-                  {mapSearchQuery && (
-                    <button
-                      onClick={() => setMapSearchQuery('')}
-                      className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <X className="h-4 w-4 text-gray-400" />
-                    </button>
-                  )}
-                  <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </div>
-              </div>
+
               
               <EnhancedMapView
                 items={mapItems}

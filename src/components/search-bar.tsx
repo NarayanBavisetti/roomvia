@@ -95,8 +95,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto mt-24 mb-8 px-4">
-      <div className="text-center mb-12">
+    <div className="w-full max-w-6xl mx-auto mt-12 mb-8 px-4">
+      <div className="text-center mb-10">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
           Find your perfect <span className="text-purple-500">room</span>
         </h1>

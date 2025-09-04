@@ -9,6 +9,9 @@ type MapItem = {
   id: string
   title: string
   location: string
+  area?: string
+  city?: string
+  state?: string
   imageUrl?: string
   price?: number
   roomType?: string
@@ -140,7 +143,58 @@ const saveCacheToStorage = () => {
 // Initialize cache from storage
 loadCacheFromStorage()
 
-async function geocode(query: string): Promise<LatLng | null> {
+// Helper function for fuzzy string matching with spelling tolerance
+function fuzzyMatch(str1: string, str2: string, threshold: number = 0.7): boolean {
+  if (!str1 || !str2) return false
+  
+  const s1 = str1.toLowerCase().trim()
+  const s2 = str2.toLowerCase().trim()
+  
+  // Exact match
+  if (s1 === s2) return true
+  
+  // Contains match
+  if (s1.includes(s2) || s2.includes(s1)) return true
+  
+  // Simple Levenshtein distance for fuzzy matching
+  const distance = levenshteinDistance(s1, s2)
+  const maxLength = Math.max(s1.length, s2.length)
+  const similarity = 1 - (distance / maxLength)
+  
+  return similarity >= threshold
+}
+
+// Simple Levenshtein distance implementation
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = []
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i]
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1]
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        )
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length]
+}
+
+// Enhanced geocoding function with spelling tolerance and multiple strategies
+async function geocode(query: string, area?: string, city?: string, state?: string): Promise<LatLng | null> {
   // Check if query previously failed recently
   if (failedQueries.has(query)) {
     const cached = geocodeCache.get(query)
@@ -174,42 +228,163 @@ async function geocode(query: string): Promise<LatLng | null> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=in`
-    const res = await fetch(url, {
-      headers: { 'Accept-Language': 'en' }, // User-Agent is forbidden in browsers and causes CORS failures
-      signal: controller.signal,
-      mode: 'cors',
-      referrerPolicy: 'no-referrer'
+    // Create multiple search variations to handle spelling mistakes
+    const createSearchVariations = (term: string) => {
+      const variations = [term]
+      
+      // Common spelling corrections for Indian cities
+      const corrections: Record<string, string> = {
+        'hyderabed': 'hyderabad',
+        'bengaluru': 'bangalore',
+        'bangalore': 'bengaluru', 
+        'mumbay': 'mumbai',
+        'dilli': 'delhi',
+        'kolkata': 'calcutta',
+        'calcutta': 'kolkata',
+        'chennay': 'chennai',
+        'madras': 'chennai',
+        'pune': 'poona',
+        'poona': 'pune'
+      }
+      
+      const lower = term.toLowerCase()
+      if (corrections[lower]) {
+        variations.push(corrections[lower])
+      }
+      
+      return variations
+    }
+
+    // Build comprehensive search strategies with variations
+    const geocodingStrategies: string[] = []
+    
+    // Strategy 1: Use area, city, state with variations
+    if (area && city && state) {
+      const areaVariations = createSearchVariations(area)
+      const cityVariations = createSearchVariations(city)
+      
+      for (const areaVar of areaVariations) {
+        for (const cityVar of cityVariations) {
+          geocodingStrategies.push(`${areaVar}, ${cityVar}, ${state}, India`)
+          geocodingStrategies.push(`${areaVar}, ${cityVar}, India`)
+        }
+      }
+    }
+    
+    // Strategy 2: Use city, state with variations
+    if (city && state) {
+      const cityVariations = createSearchVariations(city)
+      for (const cityVar of cityVariations) {
+        geocodingStrategies.push(`${cityVar}, ${state}, India`)
+        geocodingStrategies.push(`${cityVar}, India`)
+      }
+    }
+    
+    // Strategy 3: Use area if available
+    if (area) {
+      const areaVariations = createSearchVariations(area)
+      for (const areaVar of areaVariations) {
+        geocodingStrategies.push(`${areaVar}, India`)
+      }
+    }
+    
+    // Strategy 4: Original query with variations
+    const queryVariations = createSearchVariations(query)
+    for (const queryVar of queryVariations) {
+      geocodingStrategies.push(`${queryVar}, India`)
+      geocodingStrategies.push(queryVar)
+    }
+
+    console.log('Geocoding strategies for query:', query, { 
+      totalStrategies: geocodingStrategies.length,
+      area, city, state 
     })
 
-    clearTimeout(timeoutId)
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`)
-    }
-
-    const data = await res.json()
-    
-    if (Array.isArray(data) && data.length > 0) {
-      const { lat, lon } = data[0]
-      const coords = { lat: parseFloat(lat), lng: parseFloat(lon) }
+    for (const searchQuery of geocodingStrategies) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&countrycodes=in`
       
-      // Cache successful result
-      geocodeCache.set(query, { coords, timestamp: Date.now() })
-      failedQueries.delete(query) // Remove from failed queries if it was there
-      saveCacheToStorage()
-      return coords
-    } else {
-      // Cache null result to avoid repeated failed requests
-      geocodeCache.set(query, { coords: null, timestamp: Date.now() })
-      failedQueries.add(query)
-      saveCacheToStorage()
-      return null
+      const res = await fetch(url, {
+        headers: { 'Accept-Language': 'en' },
+        signal: controller.signal,
+        mode: 'cors',
+        referrerPolicy: 'no-referrer'
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        console.warn(`HTTP ${res.status} for query: ${searchQuery}`)
+        continue
+      }
+
+      const data = await res.json()
+      
+      if (Array.isArray(data) && data.length > 0) {
+        // Enhanced matching with fuzzy logic
+        let bestMatch = data[0]
+        let bestScore = 0
+        
+        for (const result of data) {
+          const displayName = result.display_name?.toLowerCase() || ''
+          let score = 0
+          
+          // Score based on area match (fuzzy)
+          if (area && fuzzyMatch(displayName, area)) {
+            score += 3
+          }
+          
+          // Score based on city match (fuzzy) 
+          if (city && fuzzyMatch(displayName, city)) {
+            score += 2
+          }
+          
+          // Score based on state match
+          if (state && displayName.includes(state.toLowerCase())) {
+            score += 1
+          }
+          
+          // Boost score for exact matches
+          if (area && displayName.includes(area.toLowerCase())) {
+            score += 1
+          }
+          if (city && displayName.includes(city.toLowerCase())) {
+            score += 1
+          }
+          
+          if (score > bestScore) {
+            bestScore = score
+            bestMatch = result
+          }
+        }
+        
+        const { lat, lon } = bestMatch
+        const coords = { lat: parseFloat(lat), lng: parseFloat(lon) }
+        console.log('Geocoding success:', { 
+          query, 
+          strategy: searchQuery, 
+          coords, 
+          bestScore,
+          displayName: bestMatch.display_name 
+        })
+        
+        // Cache successful result
+        geocodeCache.set(query, { coords, timestamp: Date.now() })
+        failedQueries.delete(query)
+        saveCacheToStorage()
+        return coords
+      }
     }
+
+    // If all strategies failed
+    console.log('Geocoding failed - no results for any strategy:', { query, totalStrategies: geocodingStrategies.length })
+    geocodeCache.set(query, { coords: null, timestamp: Date.now() })
+    failedQueries.add(query)
+    saveCacheToStorage()
+    return null
+    
   } catch (error) {
     console.warn('Geocoding failed for', query, error)
     
-    // Cache failure and add to failed queries
     geocodeCache.set(query, { coords: null, timestamp: Date.now() })
     failedQueries.add(query)
     saveCacheToStorage()
@@ -245,7 +420,8 @@ export default function EnhancedMapView({
       const promises = batch.map(async (item) => {
         if (positions[item.id]) return
         
-        const coords = await geocode(item.location)
+        // Use enhanced geocoding with area, city, and state information
+        const coords = await geocode(item.location, item.area, item.city, item.state)
         if (coords && isMountedRef.current) {
           setPositions(prev => ({ ...prev, [item.id]: coords }))
         }
