@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { openAIService } from "@/lib/openai";
+import { geminiService } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const result = await openAIService.parseListingText(
+    const result = await geminiService.parseListingText(
       user.id,
       text,
       inputType === "facebook" ? "facebook" : "text"

@@ -1,0 +1,427 @@
+import "server-only";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export interface ParsedListingResult {
+  formData: {
+    title: string;
+    propertyType: string;
+    city: string;
+    area: string;
+    state: string;
+    country: string;
+    buildingName: string;
+    areaSqft: string;
+    floor: string;
+    description: string;
+    highlights: string[];
+    rent: string;
+    maintenance: string;
+    securityDeposit: string;
+    expenses: string;
+    flatmatePreferences: {
+      gender: string;
+      smoker: boolean;
+      food: string;
+      pets: boolean;
+    };
+    contactNumber: string;
+  };
+  confidence: number;
+}
+
+export interface AIInsightResult {
+  content: string;
+  confidence: number;
+  recommendations: string[];
+}
+
+class OpenAIService {
+  // Remove emojis and problematic characters from text
+  private cleanTextForParsing(text: string): string {
+    // Remove emojis and other Unicode symbols that might cause issues
+    const cleanedText = text
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // emoticons
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // misc symbols
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // transport
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // flags
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')   // misc symbols
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')   // dingbats
+      .replace(/[\u{1F900}-\u{1F9FF}]/gu, '') // supplemental symbols
+      .replace(/[\u{1F018}-\u{1F270}]/gu, '') // various symbols
+      .replace(/\s+/g, ' ')                    // normalize whitespace
+      .trim();
+    
+    console.log('Text cleaned for parsing. Removed emojis and symbols.');
+    return cleanedText;
+  }
+
+  // Parse listing text into structured form data
+  async parseListingText(
+    userId: string,
+    text: string,
+    inputType: "text" | "facebook"
+  ): Promise<ParsedListingResult | null> {
+    try {
+      // Clean the text first
+      const cleanedText = this.cleanTextForParsing(text);
+      const systemPrompt = `You are an expert at parsing real estate listing text into structured data. You can handle text with emojis, symbols, formatting, and mixed content. Extract information from the provided text and return it in JSON format.
+
+IMPORTANT: Preserve ALL original text content - do not filter, summarize, or remove any information. Only extract and structure the data while keeping the full original content.
+
+Required fields (provide reasonable defaults if not found):
+- title: Property title/headline (extract or create from first line)
+- propertyType: One of: Flat, 1BHK, 2BHK, 3BHK, PG, Other (detect from text like "2BHK", "master bedroom", "flat", etc.)
+- city: City name (look for location indicators like city names, areas)
+- area: Area/locality within city (e.g., Koramangala, Gachibowli, HSR Layout - extract from location text)
+- state: State name (look for state names or infer from city)
+- country: Country (default: India, but extract if mentioned)
+- buildingName: Building/apartment/residence name (extract names like "Prestige Shantiniketan", "Brigade Gateway", etc.)
+- areaSqft: Area in square feet (number as string, empty if not found)
+- floor: Floor number (number as string, empty if not found)
+- description: FULL property description (preserve ALL original text including emojis and formatting)
+- highlights: Array of amenities/features (extract from text, include things like "furnished", "AC", "parking", "WiFi", "security", etc.)
+- rent: Monthly rent amount (number as string, extract from currency symbols and numbers)
+- maintenance: Maintenance amount (number as string, "0" if not mentioned)
+- securityDeposit: Security deposit amount (number as string, look for "deposit", "security", etc.)
+- expenses: Additional expenses description (setup costs, utilities, etc.)
+- flatmatePreferences: Object with gender (extract from "male", "female", "any"), smoker (boolean - false if "no smoking"), food (extract dietary preferences), pets (boolean - false if "no pets")
+- contactNumber: Phone number (clean format, extract all digits)
+
+LOCATION EXTRACTION RULES:
+- For Indian locations, extract city and state properly
+- Common formats: "City, State" or "Area, City" or "City - State"
+- Examples: "Narsingi, Hyderabad" -> city: "Hyderabad", state: "Telangana"
+- Examples: "Gachibowli, Hyderabad" -> city: "Hyderabad", state: "Telangana"
+- Examples: "Bangalore" -> city: "Bangalore", state: "Karnataka"
+
+Return JSON in this exact format:
+{
+  "formData": {
+    "title": "string",
+    "propertyType": "string", 
+    "city": "string",
+    "area": "string",
+    "state": "string",
+    "country": "string",
+    "buildingName": "string",
+    "areaSqft": "string",
+    "floor": "string", 
+    "description": "string",
+    "highlights": ["string"],
+    "rent": "string",
+    "maintenance": "string",
+    "securityDeposit": "string", 
+    "expenses": "string",
+    "flatmatePreferences": {
+      "gender": "string",
+      "smoker": boolean,
+      "food": "string", 
+      "pets": boolean
+    },
+    "contactNumber": "string"
+  },
+  "confidence": 0.95
+}`;
+
+      const userPrompt =
+        inputType === "facebook"
+          ? `Parse this Facebook post about a rental property:\n\n${cleanedText}`
+          : `Parse this rental listing text:\n\n${cleanedText}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 2500, // Increased for longer text
+        response_format: { type: "json_object" }, // Ensure JSON response
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No response from OpenAI");
+      }
+
+      console.log("Raw OpenAI response:", content);
+
+      // Parse JSON response with better error handling
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (jsonError) {
+        console.error("JSON parsing failed:", jsonError);
+        console.error("Raw content:", content);
+        throw new Error("Failed to parse AI response as JSON. The AI might have returned malformed JSON.");
+      }
+
+      // Validate structure
+      if (!parsed.formData) {
+        console.error("Missing formData in response:", parsed);
+        throw new Error("AI response missing formData structure");
+      }
+
+      // Provide defaults for missing required fields
+      const formData = {
+        title: parsed.formData.title || "Property Listing",
+        propertyType: parsed.formData.propertyType || "Other", 
+        city: parsed.formData.city || "",
+        area: parsed.formData.area || "",
+        state: parsed.formData.state || "",
+        country: parsed.formData.country || "India",
+        buildingName: parsed.formData.buildingName || "",
+        areaSqft: parsed.formData.areaSqft || "",
+        floor: parsed.formData.floor || "",
+        description: parsed.formData.description || text, // Fallback to original text
+        highlights: Array.isArray(parsed.formData.highlights) ? parsed.formData.highlights : [],
+        rent: parsed.formData.rent || "0",
+        maintenance: parsed.formData.maintenance || "0", 
+        securityDeposit: parsed.formData.securityDeposit || "0",
+        expenses: parsed.formData.expenses || "",
+        flatmatePreferences: {
+          gender: parsed.formData.flatmatePreferences?.gender || "Any",
+          smoker: Boolean(parsed.formData.flatmatePreferences?.smoker),
+          food: parsed.formData.flatmatePreferences?.food || "Any", 
+          pets: Boolean(parsed.formData.flatmatePreferences?.pets)
+        },
+        contactNumber: parsed.formData.contactNumber || ""
+      };
+
+      const result = {
+        formData,
+        confidence: parsed.confidence || 0.8
+      };
+
+      console.log("Parsed result:", result);
+      return result as ParsedListingResult;
+    } catch (error) {
+      console.error("OpenAI parsing error:", error);
+      
+      // If OpenAI fails, try fallback parsing
+      if (error instanceof Error && (error.message.includes('429') || error.message.includes('quota'))) {
+        console.log("OpenAI quota exceeded, trying fallback parsing...");
+        try {
+          return this.fallbackParseListingText(text);
+        } catch (fallbackError) {
+          console.error("Fallback parsing also failed:", fallbackError);
+          throw new Error("Both AI and fallback parsing failed. Please check your OpenAI API credits or fill the form manually.");
+        }
+      }
+      
+      // Don't return null, throw the error so the frontend can handle it properly
+      throw error;
+    }
+  }
+
+  // Fallback parsing method using regex when OpenAI is unavailable
+  private fallbackParseListingText(text: string): ParsedListingResult {
+    console.log("Using fallback regex parsing...");
+    
+    // Clean the text first 
+    const cleanedText = this.cleanTextForParsing(text);
+    console.log("Cleaned text for fallback parsing:", cleanedText);
+    
+    // Extract basic information using regex patterns
+    const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\d{10}/g;
+    const rentRegex = /(?:rent|monthly|month)[:\s]*[₹$]?\s*(\d+(?:,\d+)*)/i;
+    const depositRegex = /(?:deposit|security)[:\s]*[₹$]?\s*(\d+(?:,\d+)*)/i;
+    const maintenanceRegex = /(?:maintenance)[:\s]*[₹$]?\s*(\d+(?:,\d+)*)/i;
+    const cityRegex = /(Mumbai|Delhi|Bangalore|Hyderabad|Chennai|Kolkata|Pune|Gurgaon|Noida|Gachibowli|Narsingi|Hi-Tech City)/i;
+    const stateRegex = /(Maharashtra|Delhi|Karnataka|Telangana|Tamil Nadu|West Bengal|Haryana|Uttar Pradesh)/i;
+    const bhkRegex = /(\d+)\s*BHK/i;
+    const genderRegex = /(male|female|any|boys?|girls?)/i;
+    
+    // Extract values from cleaned text
+    const phoneMatch = cleanedText.match(phoneRegex);
+    const rentMatch = cleanedText.match(rentRegex);
+    const depositMatch = cleanedText.match(depositRegex);
+    const maintenanceMatch = cleanedText.match(maintenanceRegex);
+    const cityMatch = cleanedText.match(cityRegex);
+    const stateMatch = cleanedText.match(stateRegex);
+    const bhkMatch = cleanedText.match(bhkRegex);
+    const genderMatch = cleanedText.match(genderRegex);
+    
+    // Infer state from city if not found
+    let state = stateMatch?.[1] || "";
+    const city = cityMatch?.[1] || "";
+    
+    if (!state && city) {
+      const cityStateMap: { [key: string]: string } = {
+        "Mumbai": "Maharashtra",
+        "Delhi": "Delhi", 
+        "Bangalore": "Karnataka",
+        "Hyderabad": "Telangana",
+        "Chennai": "Tamil Nadu",
+        "Kolkata": "West Bengal",
+        "Pune": "Maharashtra",
+        "Gurgaon": "Haryana",
+        "Noida": "Uttar Pradesh",
+        "Gachibowli": "Telangana",
+        "Narsingi": "Telangana"
+      };
+      state = cityStateMap[city] || "";
+    }
+    
+    // Extract amenities/highlights
+    const amenityKeywords = [
+      "furnished", "parking", "lift", "security", "gym", "swimming", "pool", 
+      "wifi", "ac", "balcony", "garden", "club", "metro", "mall", "backup"
+    ];
+    const highlights: string[] = [];
+    amenityKeywords.forEach(keyword => {
+      if (cleanedText.toLowerCase().includes(keyword)) {
+        highlights.push(keyword.charAt(0).toUpperCase() + keyword.slice(1));
+      }
+    });
+    
+    // Extract area from text (basic matching for common patterns)
+    const areaRegex = /(in\s+|near\s+|at\s+)([A-Za-z\s]+(?:Layout|Nagar|Colony|Avenue|Park|Hills|Gate|Cross|Road|Circle))/i;
+    const areaMatch = cleanedText.match(areaRegex);
+    const area = areaMatch?.[2]?.trim() || "";
+
+    // Extract building name (look for common building name patterns)
+    const buildingRegex = /(Prestige|Brigade|Sobha|Mantri|Godrej|Embassy|Phoenix|Forum|UB City)[\s\w]+/i;
+    const buildingMatch = cleanedText.match(buildingRegex);
+    const buildingName = buildingMatch?.[0]?.trim() || "";
+
+    // Create the result
+    const formData = {
+      title: cleanedText.split('\n')[0].substring(0, 100) || "Property Listing",
+      propertyType: bhkMatch ? `${bhkMatch[1]}BHK` : "Other",
+      city: city,
+      area: area,
+      state: state,
+      country: "India",
+      buildingName: buildingName,
+      areaSqft: "",
+      floor: "",
+      description: text, // Full original text (with emojis for display)
+      highlights: highlights,
+      rent: rentMatch ? rentMatch[1].replace(/,/g, '') : "0",
+      maintenance: maintenanceMatch ? maintenanceMatch[1].replace(/,/g, '') : "0",
+      securityDeposit: depositMatch ? depositMatch[1].replace(/,/g, '') : "0",
+      expenses: "",
+      flatmatePreferences: {
+        gender: genderMatch?.[1] || "Any",
+        smoker: cleanedText.toLowerCase().includes("no smoking") ? false : false,
+        food: cleanedText.toLowerCase().includes("veg") ? "Vegetarian" : "Any",
+        pets: cleanedText.toLowerCase().includes("no pets") ? false : false
+      },
+      contactNumber: phoneMatch ? phoneMatch[0].replace(/\D/g, '') : ""
+    };
+    
+    console.log("Fallback parsing result:", formData);
+    
+    return {
+      formData,
+      confidence: 0.6 // Lower confidence for regex parsing
+    };
+  }
+
+  // Generate AI insights for broker analytics
+  async generateInsights(
+    userId: string,
+    prompt: string
+  ): Promise<AIInsightResult | null> {
+    try {
+      const systemPrompt = `You are an expert real estate market analyst. Analyze the provided data and generate actionable insights for real estate brokers.
+
+Focus on:
+1. Market demand trends and patterns
+2. Pricing recommendations
+3. Property type preferences
+4. Location-specific insights
+5. Actionable recommendations for brokers
+
+Keep your response practical, data-driven, and formatted for easy reading. Use bullet points and clear sections.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No response from OpenAI");
+      }
+
+      // Extract key recommendations
+      const recommendations = content
+        .split("\n")
+        .filter(
+          (line) => line.trim().startsWith("•") || line.trim().startsWith("-")
+        )
+        .map((line) => line.replace(/^[•-]\s*/, "").trim())
+        .filter(Boolean)
+        .slice(0, 5); // Top 5 recommendations
+
+      return {
+        content,
+        confidence: 0.9,
+        recommendations,
+      };
+    } catch (error) {
+      console.error("OpenAI insights error:", error);
+      
+      // Check if this is a quota/rate limit error and throw to trigger fallback
+      if (error instanceof Error && 
+          (error.message.includes('429') || 
+           error.message.includes('quota') || 
+           error.message.includes('insufficient_quota'))) {
+        console.log("OpenAI quota exceeded for insights generation");
+        throw new Error(`OpenAI quota exceeded: ${error.message}`);
+      }
+      
+      // For other errors, still throw to trigger fallback
+      throw error;
+    }
+  }
+
+  // Generate property description from basic details
+  async generateDescription(propertyDetails: {
+    propertyType: string;
+    city: string;
+    rent: number;
+    highlights: string[];
+    areaSqft?: number;
+  }): Promise<string | null> {
+    try {
+      const prompt = `Write an attractive property description for:
+- Type: ${propertyDetails.propertyType}
+- Location: ${propertyDetails.city}
+- Rent: ₹${propertyDetails.rent}/month
+- Area: ${
+        propertyDetails.areaSqft
+          ? propertyDetails.areaSqft + " sq ft"
+          : "Not specified"
+      }
+- Amenities: ${propertyDetails.highlights.join(", ")}
+
+Write 2-3 sentences that would appeal to potential tenants. Focus on the benefits and location advantages.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 200,
+      });
+
+      return completion.choices[0]?.message?.content || null;
+    } catch (error) {
+      console.error("OpenAI description generation error:", error);
+      return null;
+    }
+  }
+}
+
+export const openAIService = new OpenAIService();
