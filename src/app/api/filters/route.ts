@@ -5,9 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 
 // Create a per-request authed Supabase client using cookies
 const getAuthedSupabase = async () => {
-  const cookieStore = await cookies();
   const supabase = createRouteHandlerClient({
-    cookies: () => cookieStore,
+    cookies: cookies,
   });
 
   // Get the session from the route handler client

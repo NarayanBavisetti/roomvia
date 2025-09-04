@@ -90,10 +90,8 @@ export const useSavedFilters = (
       console.log("Loading saved filters for user:", user.id);
       console.log("Full user object:", user);
 
-      const token = (await import("@/lib/supabase")).supabase.auth.getSession
-        ? (await (await import("@/lib/supabase")).supabase.auth.getSession())
-            .data.session?.access_token
-        : undefined;
+      const session = await (await import("@/lib/supabase")).supabase.auth.getSession();
+      const token = session.data.session?.access_token;
       const response = await fetch(`/api/filters?user_id=${user.id}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -161,10 +159,8 @@ export const useSavedFilters = (
       console.log("Saving filters payload:", payload);
 
       try {
-        const token = (await import("@/lib/supabase")).supabase.auth.getSession
-          ? (await (await import("@/lib/supabase")).supabase.auth.getSession())
-              .data.session?.access_token
-          : undefined;
+        const session = await (await import("@/lib/supabase")).supabase.auth.getSession();
+        const token = session.data.session?.access_token;
 
         // Try PATCH first (for updating existing record)
         let response = await fetch("/api/filters", {
@@ -251,10 +247,8 @@ export const useSavedFilters = (
     console.log("Clearing filters for user:", user.id);
 
     try {
-      const token = (await import("@/lib/supabase")).supabase.auth.getSession
-        ? (await (await import("@/lib/supabase")).supabase.auth.getSession())
-            .data.session?.access_token
-        : undefined;
+      const session = await (await import("@/lib/supabase")).supabase.auth.getSession();
+      const token = session.data.session?.access_token;
       
       console.log("Sending DELETE request to /api/filters");
       const response = await fetch(`/api/filters`, {

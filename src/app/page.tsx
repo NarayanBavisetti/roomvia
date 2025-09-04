@@ -8,12 +8,11 @@ import FlatCard from '@/components/flat-card'
 import FlatCardSkeleton from '@/components/flat-card-skeleton'
 import EnhancedMapView from '@/components/enhanced-map-view'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertCircle, MapPin, Search, X } from 'lucide-react'
+import { RefreshCw, AlertCircle } from 'lucide-react'
 import { useFlatsData } from '@/hooks/useFlatsData'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import type { Flat } from '@/lib/supabase'
 import type { State, Area } from '@/lib/api'
-import { Analytics } from "@vercel/analytics/next"
 
 // All data now comes from the database through the useFlatsData hook
 
@@ -24,7 +23,7 @@ export default function Home() {
   const [searchArea, setSearchArea] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [mapSearchQuery, setMapSearchQuery] = useState('')
+  const [mapSearchQuery] = useState('')
 
   // Set mounted state
   useEffect(() => {
