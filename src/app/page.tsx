@@ -78,6 +78,9 @@ export default function Home() {
       id: flat.id,
       title: flat.title,
       location: flat.location,
+      area: flat.area,
+      city: flat.city,
+      state: flat.state,
       imageUrl: flat.image_url,
       price: flat.rent,
       roomType: flat.room_type,
@@ -261,28 +264,7 @@ export default function Home() {
           
           <div className="lg:col-span-1">
             <div className="sticky top-28">
-              {/* Map Search Box - Above the map */}
-              <div className="mb-4">
-                <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/70 flex items-center h-12 px-4 gap-3">
-                  <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search location or enter address"
-                    value={mapSearchQuery}
-                    onChange={(e) => setMapSearchQuery(e.target.value)}
-                    className="flex-1 text-sm text-gray-900 placeholder-gray-500 border-none outline-none bg-transparent"
-                  />
-                  {mapSearchQuery && (
-                    <button
-                      onClick={() => setMapSearchQuery('')}
-                      className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <X className="h-4 w-4 text-gray-400" />
-                    </button>
-                  )}
-                  <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </div>
-              </div>
+
               
               <EnhancedMapView
                 items={mapItems}
