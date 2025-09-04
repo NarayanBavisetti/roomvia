@@ -138,14 +138,14 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-[9] bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
               aria-label="Previous image"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-[9] bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-all duration-200"
               aria-label="Next image"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
