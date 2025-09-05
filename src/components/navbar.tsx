@@ -33,7 +33,7 @@ export default function Navbar() {
   const router = useRouter()
   const isFlatmatesSection = pathname?.startsWith('/flatmates')
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
-  const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
+  const ctaLabel = 'Add' // Consistent CTA label to avoid layout shifts
   const [isBroker, setIsBroker] = useState(false)
   const totalUnread = useMemo(() => chatList.reduce((acc, chat) => acc + chat.unread_count, 0), [chatList])
 
@@ -173,54 +173,73 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Desktop Auth Buttons */}
+          {/* Desktop Right Group: utilities (icons) → primary CTA → avatar */}
           <div className="hidden md:flex items-center space-x-3">
-            {user && (
+            {/* Utility icons */}
+            <div className="flex items-center space-x-2">
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  aria-label="Open messages"
+                  className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                >
+                  <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                  {totalUnread > 0 && (
+                    <>
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/40 animate-ping" />
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center z-10">
+                        {Math.min(totalUnread, 9)}
+                      </span>
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleSidebar}
-                aria-label="Open messages"
+                aria-label="Notifications"
+                onClick={() => router.push('/notifications')}
                 className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
               >
-                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
-                {totalUnread > 0 && (
-                  <>
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/40 animate-ping" />
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center z-10">
-                      {Math.min(totalUnread, 9)}
-                    </span>
-                  </>
-                )}
+                <Bell className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                <span className="sr-only">Notifications</span>
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notifications"
-              onClick={() => router.push('/notifications')}
-              className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
-            >
-              <Bell className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
-              <span className="sr-only">Notifications</span>
-            </Button>
-            
-            <Button
-              aria-label={ctaLabel}
-              className="group relative bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-full px-5 h-11 transition-all duration-300 shadow-sm hover:shadow-lg border-0 overflow-hidden"
-              onClick={() => {
-                if (user) {
-                  router.push(ctaHref)
-                } else {
-                  setShowLoginModal(true)
-                }
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out"></div>
-              <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
-              <span className="relative z-10">{ctaLabel}</span>
-            </Button>
-            
+            </div>
+
+            {/* Primary CTA: consistent Add dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label={ctaLabel}
+                  className="group relative bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-full px-5 h-11 transition-all duration-300 shadow-sm hover:shadow-lg border-0 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out"></div>
+                  <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+                  <span className="relative z-10">{ctaLabel}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (user) router.push('/add-listing'); else setShowLoginModal(true)
+                  }}
+                  className="cursor-pointer"
+                >
+                  Add Listing
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (user) router.push('/flatmates/create-profile'); else setShowLoginModal(true)
+                  }}
+                  className="cursor-pointer"
+                >
+                  Add Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+ 
             {loading ? (
               <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
             ) : user ? (

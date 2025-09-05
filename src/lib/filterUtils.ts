@@ -320,6 +320,88 @@ export const formatBudgetRange = (min: number, max: number): string => {
 };
 
 /**
+ * Normalize text for fuzzy comparisons: lowercase, remove non-alphanumerics
+ */
+export const normalizeText = (value: string | null | undefined): string => {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "");
+};
+
+/**
+ * Normalize incoming filter keys/values from UI components into a consistent shape
+ * understood by the data layer. This helps when keys differ (e.g., budget vs price)
+ * or when we need numeric ranges.
+ */
+export const normalizeFiltersForData = (
+  raw: Record<string, string[] | undefined>
+): Record<string, string[]> => {
+  const normalized: Record<string, string[]> = {};
+
+  const getFirst = (key: string): string | undefined => raw[key]?.[0];
+
+  // Pass through known multi-selects
+  const passthroughKeys = [
+    "amenities",
+    "bhk",
+    "gender",
+    "broker",
+    "locality",
+    "occupancy",
+    "property_type",
+  ];
+  for (const key of passthroughKeys) {
+    if (raw[key]?.length) normalized[key] = raw[key] as string[];
+  }
+
+  // Budget handling: support budget_min/budget_max, or a single 'budget' like "10000-25000",
+  // or legacy 'price' buckets
+  const minStr = getFirst("budget_min");
+  const maxStr = getFirst("budget_max");
+  if (minStr || maxStr) {
+    if (minStr) normalized.budget_min = [String(Number(minStr))];
+    if (maxStr) normalized.budget_max = [String(Number(maxStr))];
+  } else if (raw.budget?.length) {
+    // Expect a single entry in the form "min-max"
+    const range = raw.budget[0];
+    const match = range?.match(/(\d+)\s*-\s*(\d+)/);
+    if (match) {
+      normalized.budget_min = [match[1]];
+      normalized.budget_max = [match[2]];
+    }
+  } else if (raw.price?.length) {
+    // Map price buckets into min/max
+    const bucket = raw.price[0];
+    switch (bucket) {
+      case "< ₹15k":
+        normalized.budget_max = [String(15000)];
+        break;
+      case "₹15k-25k":
+        normalized.budget_min = [String(15000)];
+        normalized.budget_max = [String(25000)];
+        break;
+      case "₹25k-40k":
+        normalized.budget_min = [String(25000)];
+        normalized.budget_max = [String(40000)];
+        break;
+      case "> ₹40k":
+        normalized.budget_min = [String(40000)];
+        break;
+      default:
+        break;
+    }
+  }
+
+  // Aliases
+  if (raw.localities?.length && !normalized.locality) {
+    normalized.locality = raw.localities as string[];
+  }
+
+  return normalized;
+};
+
+/**
  * Get localities for a given area (mock data - replace with API)
  */
 export const getLocalitiesForArea = async (

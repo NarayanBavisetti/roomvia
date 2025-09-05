@@ -194,7 +194,8 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
         newFilters[filterId] = ['true']
       }
       setActiveFilters(newFilters)
-      onFiltersChange?.(newFilters)
+      // Include budget range alongside filters for consumers
+      onFiltersChange?.({ ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState })
       
       // Auto-save filters with freshly computed state if user is logged in
       if (user) {
@@ -217,7 +218,7 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
       }
       
       setActiveFilters(newFilters)
-      onFiltersChange?.(newFilters)
+      onFiltersChange?.({ ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState })
       
       // Auto-save filters with freshly computed state if user is logged in
       if (user) {
@@ -278,8 +279,8 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
     }
     
     setMoreFiltersState(newMoreFilters)
-    // Combine with main filters for callback
-    const combined = { ...activeFilters, ...newMoreFilters }
+    // Combine with main filters for callback and include budget
+    const combined = { ...activeFilters, ...newMoreFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])] }
     onFiltersChange?.(combined)
     
     // Auto-save filters with freshly computed state if user is logged in
