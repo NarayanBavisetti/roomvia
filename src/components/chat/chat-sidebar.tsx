@@ -7,6 +7,7 @@ import { X, Loader2, MessageCircle } from 'lucide-react'
 import { useChat } from '@/contexts/chat-context'
 import { formatMessageTime, truncateMessage, getDisplayName } from '@/lib/chat'
 import { supabase } from '@/lib/supabase'
+import { ensureProfileWithUsername } from '@/lib/auth'
 
 export default function ChatSidebar() {
   const {
@@ -23,7 +24,8 @@ export default function ChatSidebar() {
   // Refresh chat list when sidebar opens
   useEffect(() => {
     if (isSidebarOpen) {
-      refreshChatList()
+      // ensure current user has a profile name, then refresh
+      ensureProfileWithUsername().finally(() => refreshChatList())
     }
   }, [isSidebarOpen, refreshChatList])
 
@@ -35,21 +37,21 @@ export default function ChatSidebar() {
       // Try profiles keyed by id (profiles.id references auth.users.id)
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url')
+        .select('id, name, full_name, avatar_url')
         .in('id', ids)
       let finalData: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null = data
       if (error) {
         // Some projects use profiles.user_id instead
         const retry = await supabase
           .from('profiles')
-          .select('user_id, full_name, avatar_url')
+          .select('user_id, name, full_name, avatar_url')
           .in('user_id', ids)
-        finalData = retry.data as { id?: string; user_id?: string; full_name?: string; avatar_url?: string }[] | null
+        finalData = retry.data as { id?: string; user_id?: string; name?: string; full_name?: string; avatar_url?: string }[] | null
       }
-      ; (finalData || []).forEach((row: { id?: string; user_id?: string; full_name?: string; avatar_url?: string }) => {
+      ; (finalData || []).forEach((row: { id?: string; user_id?: string; name?: string; full_name?: string; avatar_url?: string }) => {
         const key = row.id || row.user_id
         if (key) {
-          map[key] = { name: row.full_name || null, avatar_url: row.avatar_url || null }
+          map[key] = { name: (row.name || row.full_name || null), avatar_url: row.avatar_url || null }
         }
       })
       setUserProfiles(prev => ({ ...prev, ...map }))
@@ -60,7 +62,7 @@ export default function ChatSidebar() {
   if (!isSidebarOpen) return null
 
   const handleChatClick = (otherUserId: string, otherUserEmail: string) => {
-    const display = userProfiles[otherUserId]?.name || otherUserEmail
+    const display = userProfiles[otherUserId]?.name || (otherUserEmail ? getDisplayName(otherUserEmail) : 'User')
     openChat(otherUserId, display || otherUserEmail, 'existing-chat-placeholder')
   }
 

@@ -101,7 +101,7 @@ export default function SavedPage() {
 
   if (!loading && !user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white-50">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
@@ -126,96 +126,156 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-            <Bookmark className="h-8 w-8 text-purple-500 mr-3" />
-            Your Saved Items
-          </h1>
-          <p className="text-gray-600">Keep track of properties and people you&apos;re interested in</p>
+      
+      {/* Hero Section with Stats */}
+      <section className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-purple-100 rounded-xl">
+                  <Bookmark className="h-6 w-6 text-purple-600" />
+                </div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                  Your Saved Items
+                </h1>
+              </div>
+              <p className="text-gray-600 text-lg">
+                Keep track of properties and people you&apos;re interested in. Your personal collection of favorites.
+              </p>
+            </div>
+            
+            {/* Compact Stats Cards */}
+            <div className="flex gap-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 min-w-[120px]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Home className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{flats.length}</p>
+                    <p className="text-xs text-gray-600 font-medium">Properties</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 min-w-[120px]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{people.length}</p>
+                    <p className="text-xs text-gray-600 font-medium">People</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
 
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Saved Properties</p>
-                  <p className="text-2xl font-bold text-purple-600">{flats.length}</p>
-                </div>
-                <Home className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Saved People</p>
-                  <p className="text-2xl font-bold text-purple-600">{people.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs */}
+        {/* Enhanced Tabs */}
         <Tabs defaultValue="flats" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="flats" className="flex items-center gap-2">
-              <Home className="h-4 w-4" />
-              Saved Properties ({flats.length})
-            </TabsTrigger>
-            <TabsTrigger value="people" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Saved People ({people.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="inline-flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
+              <TabsTrigger 
+                value="flats" 
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Saved Properties</span>
+                <span className="sm:hidden">Properties</span>
+                <Badge variant="secondary" className="ml-1 text-xs bg-gray-100 text-gray-600 data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                  {flats.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="people" 
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+              >
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Saved People</span>
+                <span className="sm:hidden">People</span>
+                <Badge variant="secondary" className="ml-1 text-xs bg-gray-100 text-gray-600 data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                  {people.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="flats" className="mt-6">
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/'}
+                className="hidden sm:flex border-gray-200 hover:bg-gray-50"
+              >
+                <Home className="h-4 w-4 mr-1" />
+                Browse Properties
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/flatmates'}
+                className="hidden sm:flex border-gray-200 hover:bg-gray-50"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Find Flatmates
+              </Button>
+            </div>
+          </div>
+
+          <TabsContent value="flats" className="space-y-6">
             {loadingData ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white/95 backdrop-blur-sm border border-gray-200/70 rounded-lg p-4">
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-8 bg-gray-200 rounded w-full"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-200 p-0 overflow-hidden">
+                    <div className="animate-pulse">
+                      <div className="h-48 bg-gray-200"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-8 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : flats.length === 0 ? (
-              <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                <CardContent className="p-8 text-center">
-                  <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No saved properties yet</h3>
-                  <p className="text-gray-600 mb-6">Start saving properties you like to keep track of them here</p>
+              <div className="text-center py-16">
+                <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-12 max-w-md mx-auto">
+                  <div className="p-4 bg-purple-50 rounded-2xl w-fit mx-auto mb-6">
+                    <Home className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">No saved properties yet</h3>
+                  <p className="text-gray-600 mb-8 leading-relaxed">
+                    Start exploring and save properties you like to build your personal collection
+                  </p>
                   <Button
                     onClick={() => window.location.href = '/'}
-                    className="bg-purple-500 hover:bg-purple-600"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all"
                   >
+                    <Home className="h-4 w-4 mr-2" />
                     Browse Properties
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {flats.map((flat) => {
                   const listing = flat.listing || null
                   const title = listing?.title || 'Property'
@@ -230,137 +290,191 @@ export default function SavedPage() {
                   })()
                   const location = [listing?.area, listing?.city, listing?.state].filter(Boolean).join(', ')
                   return (
-                    <Card key={flat.id} className="shadow-sm border-gray-200/70 bg-white hover:shadow-md transition-shadow overflow-hidden rounded-xl">
-                      <CardContent className="p-0">
-                        {/* Thumbnail */}
-                        <div className="relative aspect-[5/3] bg-gray-50 overflow-hidden">
-                          {imageSrc ? (
-                            <Image src={imageSrc} alt={title} fill className="object-cover" />
+                    <div key={flat.id} className="group bg-white rounded-2xl border border-gray-200 hover:border-purple-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                      {/* Enhanced Image Section */}
+                      <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                        {imageSrc ? (
+                          <Image 
+                            src={imageSrc} 
+                            alt={title} 
+                            fill 
+                            className="object-cover group-hover:scale-105 transition-transform duration-300" 
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                            <Home className="h-8 w-8 mb-2" />
+                            <span className="text-sm font-medium">No Image</span>
+                          </div>
+                        )}
+                        
+                        {/* Overlays */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        <div className="absolute top-3 left-3">
+                          <Badge className="bg-white/95 backdrop-blur-sm text-purple-700 border-0 font-semibold text-xs">
+                            Property
+                          </Badge>
+                        </div>
+                        
+                        <button
+                          aria-label="Remove saved property"
+                          title="Remove from saved"
+                          onClick={() => handleRemoveItem('flat', flat.id, flat.target_id)}
+                          disabled={removingItems.has(flat.id)}
+                          className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-full hover:bg-white hover:scale-105 transition-all duration-200 shadow-sm"
+                        >
+                          {removingItems.has(flat.id) ? (
+                            <div className="h-3.5 w-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">No image</div>
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
                           )}
-                          <div className="absolute top-2 left-2">
-                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">Flat</Badge>
-                          </div>
+                        </button>
+                      </div>
+                      
+                      {/* Enhanced Content */}
+                      <div className="p-4">
+                        <div className="mb-3">
+                          <h4 className="font-semibold text-gray-900 line-clamp-2 leading-tight mb-1">
+                            {title}
+                          </h4>
+                          {location && (
+                            <p className="text-sm text-gray-500 line-clamp-1 flex items-center gap-1">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                              {location}
+                            </p>
+                          )}
                         </div>
-                        <div className="p-4">
-                          <div className="mb-1">
-                            <h4 className="font-medium text-gray-900 line-clamp-1">{title}</h4>
-                            {location ? (
-                              <p className="text-xs text-gray-500 line-clamp-1">{location}</p>
-                            ) : null}
-                          </div>
-                          <p className="text-xs text-gray-500 mb-3">Saved on {formatDate(flat.created_at)}</p>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 border-gray-300"
-                              onClick={() => window.open(`/listing/${flat.target_id}`, '_blank')}
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-200 text-red-600 hover:bg-red-50"
-                              onClick={() => handleRemoveItem('flat', flat.id, flat.target_id)}
-                              disabled={removingItems.has(flat.id)}
-                            >
-                              {removingItems.has(flat.id) ? (
-                                <div className="h-3 w-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </div>
+                        
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                            Saved {formatDate(flat.created_at)}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
+                        
+                        <Button
+                          size="sm"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                          onClick={() => window.open(`/listing/${flat.target_id}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
                   )
                 })}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="people" className="mt-6">
+          <TabsContent value="people" className="space-y-6">
             {loadingData ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white/95 backdrop-blur-sm border border-gray-200/70 rounded-lg p-4">
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-8 bg-gray-200 rounded w-full"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4">
+                    <div className="animate-pulse">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                      <div className="h-8 bg-gray-200 rounded"></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : people.length === 0 ? (
-              <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                <CardContent className="p-8 text-center">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No saved people yet</h3>
-                  <p className="text-gray-600 mb-6">Connect with flatmates and save their profiles here</p>
+              <div className="text-center py-16">
+                <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-12 max-w-md mx-auto">
+                  <div className="p-4 bg-blue-50 rounded-2xl w-fit mx-auto mb-6">
+                    <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">No saved people yet</h3>
+                  <p className="text-gray-600 mb-8 leading-relaxed">
+                    Connect with potential flatmates and save their profiles for easy access later
+                  </p>
                   <Button
-                    onClick={() => window.location.href = '/'}
-                    className="bg-purple-500 hover:bg-purple-600"
+                    onClick={() => window.location.href = '/flatmates'}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all"
                   >
+                    <Users className="h-4 w-4 mr-2" />
                     Find Flatmates
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {people.map((person) => {
                   const p = person.person || null
                   const name = p?.name || 'Person'
+                  const getInitials = (name: string) => {
+                    const parts = name.trim().split(' ')
+                    const first = parts[0]?.charAt(0) || ''
+                    const second = parts.length > 1 ? parts[1].charAt(0) : ''
+                    return (first + second).toUpperCase()
+                  }
+                  
                   return (
-                    <Card key={person.id} className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              {p?.image_url ? (
-                                <AvatarImage src={p.image_url} alt={name} />
-                              ) : (
-                                <AvatarFallback>{name.slice(0,1)}</AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <h4 className="font-medium text-gray-900 leading-tight">{name}</h4>
-                              <p className="text-xs text-gray-500">Saved on {formatDate(person.created_at)}</p>
-                            </div>
-                          </div>
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-700">Person</Badge>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 border-gray-300"
-                            onClick={() => window.open(`/profile/${person.target_id}`, '_blank')}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-red-200 text-red-600 hover:bg-red-50"
-                            onClick={() => handleRemoveItem('person', person.id, person.target_id)}
-                            disabled={removingItems.has(person.id)}
-                          >
-                            {removingItems.has(person.id) ? (
-                              <div className="h-3 w-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                    <div key={person.id} className="group bg-white rounded-2xl border border-gray-200 hover:border-blue-200 p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="relative">
+                          <Avatar className="h-12 w-12 ring-2 ring-blue-100 group-hover:ring-blue-200 transition-all">
+                            {p?.image_url ? (
+                              <AvatarImage src={p.image_url} alt={name} />
                             ) : (
-                              <Trash2 className="h-3 w-3" />
+                              <AvatarFallback className="bg-blue-50 text-blue-700 font-semibold">
+                                {getInitials(name)}
+                              </AvatarFallback>
                             )}
-                          </Button>
+                          </Avatar>
+                          <div className="absolute -top-1 -right-1">
+                            <Badge className="bg-white/95 backdrop-blur-sm text-blue-700 border border-blue-200 text-xs px-1.5 py-0.5">
+                              Person
+                            </Badge>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                        
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 leading-tight truncate">
+                            {name}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Flatmate Profile
+                          </p>
+                        </div>
+
+                        <button
+                          aria-label="Remove saved person"
+                          title="Remove from saved"
+                          onClick={() => handleRemoveItem('person', person.id, person.target_id)}
+                          disabled={removingItems.has(person.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200"
+                        >
+                          {removingItems.has(person.id) ? (
+                            <div className="h-3.5 w-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full text-center">
+                          Saved {formatDate(person.created_at)}
+                        </div>
+                        
+                        <Button
+                          size="sm"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                          onClick={() => window.open(`/flatmates`, '_blank')}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                          View Profile
+                        </Button>
+                      </div>
+                    </div>
                   )
                 })}
               </div>
