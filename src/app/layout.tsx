@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { ChatProvider } from "@/contexts/chat-context";
 import ChatContainer from "@/components/chat/chat-container";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { Analytics } from '@vercel/analytics/react'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
             </ChatProvider>
           </AuthProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   );

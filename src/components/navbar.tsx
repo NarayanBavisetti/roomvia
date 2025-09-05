@@ -275,6 +275,22 @@ export default function Navbar() {
                       </div>
                     </DropdownMenuItem>
                   )}
+                  {!isBroker && (
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push('/insights')
+                      }}
+                      className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="p-1.5 rounded-md bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                          <BarChart3 className="h-4 w-4 text-indigo-600" />
+                        </div>
+                        <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Insights</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={(e) => {
                       e.preventDefault()

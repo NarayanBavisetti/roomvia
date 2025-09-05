@@ -122,7 +122,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
 🏡 Spacious 3BHK | 2500 sq. ft | Madhapur, Siddhi Vinayak Nagar | 2nd Floor
 • Rent: ₹18,166 (includes maintenance)
 • Security Deposit: ₹36,332
-• Contact: +91 8220147153
+• Contact: +91 9999999999
 • Amenities: Lift, Security, Fully Furnished, AC, WiFi
 • Looking for: Male, Non-smoker, Pet-friendly
 • Additional Details: Well-connected area, near IT hub, excellent transport connectivity
@@ -499,11 +499,11 @@ export default function AddListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white-50">
       <Navbar />
       
       {/* Fullscreen Layout with Toggle */}
-      <main className="h-screen flex flex-col pt-4">
+      <main className="h-screen flex flex-col  bg-white-50 pt-4">
         {/* Header Bar */}
         <div className="bg-grey/95 backdrop-blur-sm  sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto py-4">
@@ -597,15 +597,22 @@ export default function AddListingPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setInputType('facebook')}
-                              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
+                              onClick={() => {
+                                alert('🚀 Facebook Post integration is coming soon! Stay tuned for this exciting feature.')
+                                // Don't change input type for now
+                              }}
+                              className={`relative flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
                                 inputType === 'facebook'
                                   ? 'bg-white text-purple-600 shadow-sm'
-                                  : 'text-gray-600 hover:text-gray-900'
+                                  : 'text-gray-600 hover:text-gray-900 opacity-75'
                               }`}
                             >
                               <Globe className="h-4 w-4 mr-1 inline" />
                               Facebook Post
+                              {/* Coming Soon Banner */}
+                              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                                SOON
+                              </div>
                             </button>
                           </div>
 
@@ -623,7 +630,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
 🏡 Spacious 3BHK | 2500 sq. ft | Madhapur, Siddhi Vinayak Nagar | 2nd Floor
 • Rent: ₹18,166 (includes maintenance)
 • Security Deposit: ₹36,332
-• Contact: +91 8220147153
+• Contact: +91 99999999999
 • Amenities: Lift, Security, Fully Furnished, AC, WiFi
 • Looking for: Male, Non-smoker, Pet-friendly..."
                                 rows={10}
@@ -691,7 +698,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
             </div>
           ) : (
             /* Manual Form View */
-            <div className="h-full overflow-y-auto bg-gray-50">
+            <div className="h-full overflow-y-auto bg-white-50">
               <div className="max-w-6xl mx-auto p-4">
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Left Column */}

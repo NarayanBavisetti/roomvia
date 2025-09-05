@@ -202,19 +202,21 @@ export default function BrokerAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Crown className="h-8 w-8 text-yellow-500" />
-                Broker Analytics
-              </h1>
-              <p className="text-gray-600 mt-2">AI-powered insights for your real estate business</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg">
+                <Crown className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Broker Analytics</h1>
+                <p className="text-gray-600">AI-powered insights for your real estate business</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Select value={selectedCity} onValueChange={setSelectedCity}>
@@ -280,48 +282,52 @@ export default function BrokerAnalyticsPage() {
               <>
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <Card>
+                  <Card className="border-l-4 border-l-blue-500">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">Total Searches</p>
-                          <p className="text-3xl font-extrabold text-gray-900 leading-tight">{metrics.data?.totalSearches || 0}</p>
+                          <p className="text-sm font-medium text-gray-600">Total Searches</p>
+                          <p className="text-3xl font-bold text-gray-900">{metrics.data?.totalSearches || 0}</p>
+                          <p className="text-xs text-gray-500">Market activity</p>
                         </div>
-                        <Users className="h-9 w-9 text-blue-500" />
+                        <Users className="h-8 w-8 text-blue-500" />
                       </div>
                     </CardContent>
                   </Card>
                   
-                  <Card>
+                  <Card className="border-l-4 border-l-green-500">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">Unique Users</p>
-                          <p className="text-3xl font-extrabold text-gray-900 leading-tight">{metrics.data?.uniqueUsers || 0}</p>
+                          <p className="text-sm font-medium text-gray-600">Unique Users</p>
+                          <p className="text-3xl font-bold text-gray-900">{metrics.data?.uniqueUsers || 0}</p>
+                          <p className="text-xs text-gray-500">Engaged audience</p>
                         </div>
-                        <Eye className="h-9 w-9 text-green-500" />
+                        <Eye className="h-8 w-8 text-green-500" />
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="border-l-4 border-l-purple-500">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">Top Property</p>
-                          <p className="text-2xl font-bold text-gray-900">{propTypes.data?.[0]?.property_type || 'N/A'}</p>
+                          <p className="text-sm font-medium text-gray-600">Top Property</p>
+                          <p className="text-lg font-bold text-gray-900">{propTypes.data?.[0]?.property_type || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">Most popular</p>
                         </div>
                         <BarChart3 className="h-8 w-8 text-purple-500" />
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="border-l-4 border-l-orange-500">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-500">Top Location</p>
-                          <p className="text-2xl font-bold text-gray-900">{formatAreaName(locations.data?.[0]?.area || 'N/A')}</p>
+                          <p className="text-sm font-medium text-gray-600">Top Location</p>
+                          <p className="text-lg font-bold text-gray-900">{formatAreaName(locations.data?.[0]?.area || 'N/A')}</p>
+                          <p className="text-xs text-gray-500">High demand</p>
                         </div>
                         <MapPin className="h-8 w-8 text-orange-500" />
                       </div>
@@ -333,7 +339,10 @@ export default function BrokerAnalyticsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Property Type Distribution</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-purple-500" />
+                        Property Type Distribution
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <PropertyTypeChart data={propTypes.data || []} />
@@ -342,7 +351,10 @@ export default function BrokerAnalyticsPage() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Budget Range Preferences</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-blue-500" />
+                        Budget Range Preferences
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <PriceRangeChart data={priceRanges.data || {}} />
@@ -354,7 +366,10 @@ export default function BrokerAnalyticsPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Popular Amenities Distribution</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-orange-500" />
+                        Popular Amenities Distribution
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <AmenitiesChart data={amenities.data || []} />
@@ -363,7 +378,10 @@ export default function BrokerAnalyticsPage() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Most Searched Amenities</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Bookmark className="h-5 w-5 text-green-500" />
+                        Most Searched Amenities
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <AmenityTags 
@@ -382,7 +400,10 @@ export default function BrokerAnalyticsPage() {
                 {/* Top Locations Chart */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Popular Areas in {selectedCity}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-red-500" />
+                      Popular Areas in {selectedCity}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <LocationChart 
