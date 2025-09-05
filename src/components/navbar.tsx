@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ export default function Navbar() {
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
   const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
   const [isBroker, setIsBroker] = useState(false)
+  const totalUnread = useMemo(() => chatList.reduce((acc, chat) => acc + chat.unread_count, 0), [chatList])
 
   useEffect(() => {
     // Only add login modal listener on client side
@@ -179,19 +180,24 @@ export default function Navbar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="group relative h-11 w-11 rounded-full bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-all duration-300 hover:scale-110 transform shadow-sm hover:shadow-md"
+                aria-label="Open messages"
+                className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
               >
-                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-all duration-300 group-hover:scale-110" />
-                {chatList.reduce((acc, chat) => acc + chat.unread_count, 0) > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    {Math.min(chatList.reduce((acc, chat) => acc + chat.unread_count, 0), 9)}
-                  </span>
+                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                {totalUnread > 0 && (
+                  <>
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/40 animate-ping" />
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center z-10">
+                      {Math.min(totalUnread, 9)}
+                    </span>
+                  </>
                 )}
               </Button>
             )}
             
             <Button
-              className="group relative bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-2xl px-6 py-3 h-11 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105 transform border-0 overflow-hidden"
+              aria-label={ctaLabel}
+              className="group relative bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-full px-5 h-11 transition-all duration-300 shadow-sm hover:shadow-lg border-0 overflow-hidden"
               onClick={() => {
                 if (user) {
                   router.push(ctaHref)
@@ -200,7 +206,7 @@ export default function Navbar() {
                 }
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out"></div>
               <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
               <span className="relative z-10">{ctaLabel}</span>
             </Button>

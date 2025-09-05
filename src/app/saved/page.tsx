@@ -101,7 +101,7 @@ export default function SavedPage() {
 
   if (!loading && !user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white-50">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
@@ -126,12 +126,12 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white-50">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-            <Bookmark className="h-8 w-8 text-purple-500 mr-3" />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-1 flex items-center">
+            <Bookmark className="h-8 w-8 text-purple-600 mr-3" />
             Your Saved Items
           </h1>
           <p className="text-gray-600">Keep track of properties and people you&apos;re interested in</p>
@@ -148,7 +148,7 @@ export default function SavedPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -176,12 +176,12 @@ export default function SavedPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="flats" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="flats" className="flex items-center gap-2">
+          <TabsList className="w-full grid grid-cols-2 bg-gray-50 p-1 rounded-full border border-gray-200">
+            <TabsTrigger value="flats" className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <Home className="h-4 w-4" />
               Saved Properties ({flats.length})
             </TabsTrigger>
-            <TabsTrigger value="people" className="flex items-center gap-2">
+            <TabsTrigger value="people" className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <Users className="h-4 w-4" />
               Saved People ({people.length})
             </TabsTrigger>
@@ -215,7 +215,7 @@ export default function SavedPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {flats.map((flat) => {
                   const listing = flat.listing || null
                   const title = listing?.title || 'Property'
@@ -230,7 +230,7 @@ export default function SavedPage() {
                   })()
                   const location = [listing?.area, listing?.city, listing?.state].filter(Boolean).join(', ')
                   return (
-                    <Card key={flat.id} className="shadow-sm border-gray-200/70 bg-white hover:shadow-md transition-shadow overflow-hidden rounded-xl">
+                    <Card key={flat.id} className="group shadow-sm border-gray-200/70 bg-white hover:shadow-md transition-all duration-300 overflow-hidden rounded-xl">
                       <CardContent className="p-0">
                         {/* Thumbnail */}
                         <div className="relative aspect-[5/3] bg-gray-50 overflow-hidden">
@@ -242,6 +242,19 @@ export default function SavedPage() {
                           <div className="absolute top-2 left-2">
                             <Badge variant="secondary" className="bg-purple-100 text-purple-700">Flat</Badge>
                           </div>
+                          <button
+                            aria-label="Remove saved property"
+                            title="Remove"
+                            onClick={() => handleRemoveItem('flat', flat.id, flat.target_id)}
+                            disabled={removingItems.has(flat.id)}
+                            className="absolute top-2 right-2 p-2 rounded-lg bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white transition-colors shadow-sm"
+                          >
+                            {removingItems.has(flat.id) ? (
+                              <div className="h-3.5 w-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-gray-600" />
+                            )}
+                          </button>
                         </div>
                         <div className="p-4">
                           <div className="mb-1">
@@ -253,26 +266,13 @@ export default function SavedPage() {
                           <p className="text-xs text-gray-500 mb-3">Saved on {formatDate(flat.created_at)}</p>
                           <div className="flex gap-2">
                             <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
-                              className="flex-1 border-gray-300"
+                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                               onClick={() => window.open(`/listing/${flat.target_id}`, '_blank')}
                             >
                               <ExternalLink className="h-3 w-3 mr-1" />
                               View
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-200 text-red-600 hover:bg-red-50"
-                              onClick={() => handleRemoveItem('flat', flat.id, flat.target_id)}
-                              disabled={removingItems.has(flat.id)}
-                            >
-                              {removingItems.has(flat.id) ? (
-                                <div className="h-3 w-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
                             </Button>
                           </div>
                         </div>
@@ -312,16 +312,16 @@ export default function SavedPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {people.map((person) => {
                   const p = person.person || null
                   const name = p?.name || 'Person'
                   return (
-                    <Card key={person.id} className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm hover:shadow-md transition-shadow">
+                    <Card key={person.id} className="group shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm hover:shadow-md transition-all duration-300 rounded-xl">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
+                            <Avatar className="h-9 w-9 ring-2 ring-purple-100">
                               {p?.image_url ? (
                                 <AvatarImage src={p.image_url} alt={name} />
                               ) : (
@@ -337,9 +337,9 @@ export default function SavedPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            variant="outline"
+                            variant="default"
                             size="sm"
-                            className="flex-1 border-gray-300"
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                             onClick={() => window.open(`/profile/${person.target_id}`, '_blank')}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
