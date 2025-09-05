@@ -4,7 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ChatProvider } from "@/contexts/chat-context";
 import ChatContainer from "@/components/chat/chat-container";
-import { Analytics } from "@vercel/analytics/next"
+import { QueryProvider } from "@/providers/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,12 +31,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ChatProvider>
-            {children}
-            <ChatContainer />
-          </ChatProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ChatProvider>
+              {children}
+              <ChatContainer />
+            </ChatProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

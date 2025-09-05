@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import Navbar from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,11 +25,14 @@ import {
   Download,
   RefreshCw
 } from 'lucide-react'
-import { fetchAnalytics, type MarketData, type BrokerPerformance, formatBudget, calculateEngagementRate } from '@/lib/analytics-extraction'
+import { fetchAnalytics, type BrokerPerformance, formatBudget, calculateEngagementRate } from '@/lib/analytics-extraction'
 import { showToast } from '@/lib/toast'
+import { useBrokerInsights, useBrokerInsightsRefresh } from '@/hooks/useBrokerInsights'
+import { useBrokerMetrics, usePropertyTypeDistribution, usePriceRanges, usePopularAmenities, useLocationPreferences } from '@/hooks/useBrokerInsightsParts'
+import { PropertyTypeChart, PriceRangeChart, LocationChart, AmenitiesChart, AmenityTags } from '@/components/broker/InsightCharts'
 
 const CITIES = [
-  'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'
+  'Hyderabad', 'Bangalore', 'Mumbai', 'Delhi', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'
 ]
 
 const TIME_PERIODS = [
@@ -38,18 +42,70 @@ const TIME_PERIODS = [
   { value: 90, label: 'Last 3 months' }
 ]
 
+// Helper function to format area names properly
+function formatAreaName(area: string): string {
+  if (!area) return 'Unknown Area'
+  
+  // Handle common variations
+  const cleanedArea = area.replace(/[-_]/g, ' ')
+    .replace(/\b(hi|hitech|hi-tech)\s*(city)\b/gi, 'Hi-Tech City')
+    .replace(/\b(hitec|hi\s*tec)\s*(city)\b/gi, 'Hitec City')
+    .replace(/\b(gachi\s*bowli)\b/gi, 'Gachibowli')
+    .replace(/\b(madha\s*pur)\b/gi, 'Madhapur')
+    .replace(/\b(konda\s*pur)\b/gi, 'Kondapur')
+    .replace(/\b(banjara\s*hills?)\b/gi, 'Banjara Hills')
+    .replace(/\b(jubilee\s*hills?)\b/gi, 'Jubilee Hills')
+  
+  // Capitalize each word
+  return cleanedArea.replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+// Helper to format amenity names
+function formatAmenityName(amenity: string): string {
+  if (!amenity) return 'Unknown'
+  
+  return amenity
+    .replace(/[-_]/g, ' ')
+    .replace(/\b(air[_\s]?conditioning)\b/gi, 'Air Conditioning')
+    .replace(/\b(spacious[_\s]?cupboard)\b/gi, 'Spacious Cupboard')
+    .replace(/\b(semi[_\s]?furnished)\b/gi, 'Semi-Furnished')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 export default function BrokerAnalyticsPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [selectedCity, setSelectedCity] = useState('Bangalore')
-  const [selectedPeriod, setSelectedPeriod] = useState(7)
-  const [marketData, setMarketData] = useState<MarketData | null>(null)
+  const queryClient = useQueryClient()
+  const [selectedCity, setSelectedCity] = useState('Hyderabad')
+  const [selectedPeriod, setSelectedPeriod] = useState(30)
   const [performanceData, setPerformanceData] = useState<BrokerPerformance | null>(null)
-  const [aiSummary, setAiSummary] = useState('')
-  const [loadingMarket, setLoadingMarket] = useState(false)
   const [loadingPerformance, setLoadingPerformance] = useState(false)
   const [isBroker, setIsBroker] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  
+  // Lightweight hooks for Market tab (fast endpoints)
+  const metrics = useBrokerMetrics(selectedCity, selectedPeriod, isBroker)
+  const propTypes = usePropertyTypeDistribution(selectedCity, selectedPeriod, isBroker)
+  const priceRanges = usePriceRanges(selectedCity, selectedPeriod, isBroker)
+  const amenities = usePopularAmenities(selectedCity, selectedPeriod, isBroker)
+  const locations = useLocationPreferences(selectedCity, selectedPeriod, isBroker)
+
+  // Heavy AI insights only for Recommendations tab
+  const {
+    data: aiInsights,
+    isLoading: loadingInsights,
+    error: insightsError
+  } = useBrokerInsights({
+    city: selectedCity,
+    days: selectedPeriod,
+    enabled: isBroker
+  })
+  
+  const { refresh: refreshInsights, isRefreshing } = useBrokerInsightsRefresh()
+
+  // Type assertion for aiInsights
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typedInsights = aiInsights as any
 
   // Check broker access
   useEffect(() => {
@@ -85,31 +141,13 @@ export default function BrokerAnalyticsPage() {
     }
   }, [user, loading, router])
 
-  // Load market insights
-  const loadMarketInsights = useCallback(async () => {
-    if (!selectedCity) return
-    
-    setLoadingMarket(true)
-    try {
-      const response = await fetchAnalytics({
-        city: selectedCity,
-        days: selectedPeriod,
-        type: 'market'
-      })
-
-      if (response) {
-        setMarketData(response.data as MarketData)
-        setAiSummary(response.ai_summary || '')
-      } else {
-        showToast('Failed to load market insights', { variant: 'error' })
-      }
-    } catch (error) {
-      console.error('Error loading market insights:', error)
-      showToast('Failed to load market insights', { variant: 'error' })
-    } finally {
-      setLoadingMarket(false)
+  // Refresh handler for manual refresh
+  const handleRefresh = async () => {
+    await refreshInsights(queryClient, selectedCity, selectedPeriod)
+    if (performanceData) {
+      loadPerformanceData()
     }
-  }, [selectedCity, selectedPeriod])
+  }
 
   // Load performance data
   const loadPerformanceData = useCallback(async () => {
@@ -133,13 +171,20 @@ export default function BrokerAnalyticsPage() {
     }
   }, [selectedPeriod])
 
+  // Show error messages from insights hook
+  useEffect(() => {
+    if (insightsError) {
+      console.error('Insights error:', insightsError)
+      showToast('Failed to load broker insights', { variant: 'error' })
+    }
+  }, [insightsError])
+
   // Initial load
   useEffect(() => {
     if (isBroker) {
-      loadMarketInsights()
       loadPerformanceData()
     }
-  }, [isBroker, selectedCity, selectedPeriod, loadMarketInsights, loadPerformanceData])
+  }, [isBroker, selectedPeriod, loadPerformanceData])
 
   if (loading || checkingAccess) {
     return (
@@ -157,7 +202,7 @@ export default function BrokerAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white-50">
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -198,13 +243,10 @@ export default function BrokerAnalyticsPage() {
               </Select>
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  loadMarketInsights()
-                  loadPerformanceData()
-                }}
-                disabled={loadingMarket || loadingPerformance}
+                onClick={handleRefresh}
+                disabled={isRefreshing || loadingPerformance || loadingInsights}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${(loadingMarket || loadingPerformance) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${(isRefreshing || loadingPerformance || loadingInsights) ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -229,12 +271,12 @@ export default function BrokerAnalyticsPage() {
 
           {/* Market Insights Tab */}
           <TabsContent value="market" className="space-y-6">
-            {loadingMarket ? (
+            {metrics.isLoading || propTypes.isLoading || priceRanges.isLoading || amenities.isLoading || locations.isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
                 <span className="ml-3 text-gray-600">Loading market insights...</span>
               </div>
-            ) : marketData ? (
+            ) : (
               <>
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -242,12 +284,10 @@ export default function BrokerAnalyticsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Total Searches</p>
-                          <p className="text-2xl font-bold text-gray-900">
-                            {marketData.property_demand.reduce((sum, item) => sum + item.search_count, 0)}
-                          </p>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">Total Searches</p>
+                          <p className="text-3xl font-extrabold text-gray-900 leading-tight">{metrics.data?.totalSearches || 0}</p>
                         </div>
-                        <Users className="h-8 w-8 text-blue-500" />
+                        <Users className="h-9 w-9 text-blue-500" />
                       </div>
                     </CardContent>
                   </Card>
@@ -256,12 +296,10 @@ export default function BrokerAnalyticsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Avg Budget</p>
-                          <p className="text-2xl font-bold text-gray-900">
-                            {formatBudget(marketData.property_demand.reduce((sum, item) => sum + (item.avg_budget || 0), 0) / Math.max(marketData.property_demand.length, 1))}
-                          </p>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">Unique Users</p>
+                          <p className="text-3xl font-extrabold text-gray-900 leading-tight">{metrics.data?.uniqueUsers || 0}</p>
                         </div>
-                        <TrendingUp className="h-8 w-8 text-green-500" />
+                        <Eye className="h-9 w-9 text-green-500" />
                       </div>
                     </CardContent>
                   </Card>
@@ -270,10 +308,8 @@ export default function BrokerAnalyticsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Top Property</p>
-                          <p className="text-2xl font-bold text-gray-900">
-                            {marketData.property_demand.sort((a, b) => b.search_count - a.search_count)[0]?.property_type || 'N/A'}
-                          </p>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">Top Property</p>
+                          <p className="text-2xl font-bold text-gray-900">{propTypes.data?.[0]?.property_type || 'N/A'}</p>
                         </div>
                         <BarChart3 className="h-8 w-8 text-purple-500" />
                       </div>
@@ -284,10 +320,8 @@ export default function BrokerAnalyticsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Gated Demand</p>
-                          <p className="text-2xl font-bold text-gray-900">
-                            {Math.round((marketData.property_demand.reduce((sum, item) => sum + item.gated_preference, 0) / Math.max(marketData.property_demand.reduce((sum, item) => sum + item.search_count, 0), 1)) * 100)}%
-                          </p>
+                          <p className="text-xs uppercase tracking-wide text-gray-500">Top Location</p>
+                          <p className="text-2xl font-bold text-gray-900">{formatAreaName(locations.data?.[0]?.area || 'N/A')}</p>
                         </div>
                         <MapPin className="h-8 w-8 text-orange-500" />
                       </div>
@@ -295,58 +329,72 @@ export default function BrokerAnalyticsPage() {
                   </Card>
                 </div>
 
-                {/* Property Demand Chart */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Property Type Demand in {selectedCity}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {marketData.property_demand.map((item, index) => (
-                        <div key={item.property_type} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                              <span className="text-lg font-bold text-purple-600">{index + 1}</span>
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{item.property_type}</h3>
-                              <p className="text-sm text-gray-600">{item.search_count} searches</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-900">{formatBudget(item.avg_budget || 0)}</p>
-                            <p className="text-sm text-gray-600">avg budget</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Property Type Distribution Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Property Type Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PropertyTypeChart data={propTypes.data || []} />
+                    </CardContent>
+                  </Card>
 
-                {/* Top Filters */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Budget Range Preferences</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PriceRangeChart data={priceRanges.data || {}} />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Popular Amenities with Chart */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Popular Amenities Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AmenitiesChart data={amenities.data || []} />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Most Searched Amenities</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AmenityTags 
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        amenities={(amenities.data || []).map((a: any) => ({
+                          ...a,
+                          amenity: formatAmenityName(a.amenity)
+                        }))} 
+                        maxDisplay={8} 
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+
+                {/* Top Locations Chart */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Most Applied Filters</CardTitle>
+                    <CardTitle>Popular Areas in {selectedCity}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex flex-wrap gap-3">
-                      {marketData.top_filters.map((filter, index) => (
-                        <Badge key={filter.filter_key} variant="secondary" className="text-sm px-3 py-2">
-                          #{index + 1} {filter.filter_key} ({filter.usage_count} uses)
-                        </Badge>
-                      ))}
-                    </div>
+                    <LocationChart 
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      data={(locations.data || []).map((loc: any) => ({
+                        ...loc,
+                        area: formatAreaName(loc.area)
+                      }))} 
+                    />
                   </CardContent>
                 </Card>
               </>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No market data available</h3>
-                  <p className="text-gray-600">Select a city and time period to view insights</p>
-                </CardContent>
-              </Card>
             )}
           </TabsContent>
 
@@ -465,36 +513,112 @@ export default function BrokerAnalyticsPage() {
 
           {/* AI Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
-                  AI-Powered Recommendations for {selectedCity}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingMarket ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
-                    <span className="ml-3 text-gray-600">Generating AI insights...</span>
-                  </div>
-                ) : aiSummary ? (
-                  <div className="prose prose-gray max-w-none">
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
-                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                        {aiSummary}
+            {loadingInsights ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <span className="ml-3 text-gray-600">Generating AI insights...</span>
+              </div>
+            ) : typedInsights ? (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-yellow-500" />
+                      {typedInsights?.fallback_used ? 'Statistical Market Analysis' : 'AI-Powered Market Analysis'} for {selectedCity}
+                    </CardTitle>
+                    {typedInsights?.fallback_used && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                          <span className="text-sm text-amber-800 font-medium">
+                            Statistical Analysis Mode - AI service temporarily unavailable
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Analysis generated using statistical insights from user search data
+                        </p>
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-gray max-w-none">
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+                        <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                          {typedInsights?.ai_summary || ''}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Crown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No AI insights available</h3>
-                    <p className="text-gray-600">Load market data to generate AI recommendations</p>
-                  </div>
+                  </CardContent>
+                </Card>
+
+                {typedInsights?.recommendations && typedInsights.recommendations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                        Key Recommendations
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {(typedInsights?.recommendations || []).map((recommendation: string, index: number) => (
+                          <div key={index} className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-white text-sm font-bold">{index + 1}</span>
+                            </div>
+                            <div className="text-gray-800 leading-relaxed">{recommendation}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-blue-500" />
+                      Data Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-600">Analysis Period</div>
+                        <div className="text-lg font-semibold text-gray-900">{selectedPeriod} days</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-600">Data Points</div>
+                        <div className="text-lg font-semibold text-gray-900">{typedInsights?.metadata?.totalFilters || 0} filter records</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-600">Analysis Type</div>
+                        <div className="text-lg font-semibold text-gray-900 capitalize">
+                          {typedInsights?.metadata?.analysis_type?.replace('_', ' ') || 'Statistical'}
+                          {typedInsights?.fallback_used && (
+                            <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                              Fallback
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-600">Confidence Level</div>
+                        <div className="text-lg font-semibold text-gray-900">{((typedInsights?.confidence || 0) * 100).toFixed(0)}%</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Crown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No AI insights available</h3>
+                  <p className="text-gray-600">Loading filter data to generate AI recommendations...</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Export Options */}
             <Card>

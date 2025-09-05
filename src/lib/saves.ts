@@ -8,7 +8,67 @@ export interface SaveItem {
   type: SaveType;
   target_id: string;
   created_at: string;
+  // Relational data (via FK columns flat_id, person_id)
+  listing?: {
+    id: string;
+    title?: string;
+    images?: Array<{ url: string; public_id?: string; is_primary?: boolean }>;
+    city?: string;
+    state?: string;
+    area?: string;
+  } | null;
+  person?: {
+    id: string;
+    name?: string;
+    image_url?: string;
+  } | null;
 }
+
+// Narrow type describing the shape returned by the Supabase join
+type SaveRowWithRelations = {
+  id: string | number;
+  type: SaveType;
+  target_id: string | number;
+  created_at: string | Date;
+  listing?:
+    | null
+    | {
+        id: string | number;
+        title?: string;
+        images?: Array<{
+          url: string;
+          public_id?: string;
+          is_primary?: boolean;
+        }>;
+        city?: string;
+        state?: string;
+        area?: string;
+      }
+    | Array<{
+        id: string | number;
+        title?: string;
+        images?: Array<{
+          url: string;
+          public_id?: string;
+          is_primary?: boolean;
+        }>;
+        city?: string;
+        state?: string;
+        area?: string;
+      }>;
+  person?:
+    | null
+    | {
+        id: string | number;
+        name?: string;
+        image_url?: string;
+      }
+    | Array<{
+        id: string | number;
+        name?: string;
+        image_url?: string;
+      }>;
+};
 
 // Simple in-memory dedupe and failure tracking
 const pendingKeys = new Map<string, Promise<boolean>>();
@@ -62,15 +122,58 @@ export const savesApi = {
 
       let query = supabase
         .from("saves")
-        .select("id,type,target_id,created_at")
+        .select(
+          `id,type,target_id,created_at,
+           listing:flat_id ( id, title, images, city, state, area ),
+           person:person_id ( id, name, image_url )`
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (type) query = query.eq("type", type);
 
       const { data, error } = await query;
+      const items: SaveItem[] = Array.isArray(data)
+        ? (data as SaveRowWithRelations[]).map((row): SaveItem => {
+            const listingRaw = Array.isArray(row.listing)
+              ? row.listing[0]
+              : row.listing;
+            const personRaw = Array.isArray(row.person)
+              ? row.person[0]
+              : row.person;
+
+            const listing = listingRaw
+              ? {
+                  id: String(listingRaw.id),
+                  title: listingRaw.title ?? undefined,
+                  images: listingRaw.images ?? undefined,
+                  city: listingRaw.city ?? undefined,
+                  state: listingRaw.state ?? undefined,
+                  area: listingRaw.area ?? undefined,
+                }
+              : null;
+
+            const person = personRaw
+              ? {
+                  id: String(personRaw.id),
+                  name: personRaw.name ?? undefined,
+                  image_url: personRaw.image_url ?? undefined,
+                }
+              : null;
+
+            return {
+              id: String(row.id),
+              type: row.type,
+              target_id: String(row.target_id),
+              created_at: String(row.created_at),
+              listing,
+              person,
+            };
+          })
+        : [];
+
       return {
-        items: (data as SaveItem[]) || [],
+        items,
         error: error as Error | null,
       };
     } catch (e) {

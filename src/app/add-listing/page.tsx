@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import ImageUpload from '@/components/image-upload'
 import { CloudinaryImage } from '@/lib/cloudinary'
 import { showToast } from '@/lib/toast'
+import { INDIAN_STATES, getCitiesForState, findStateByName, findCityByName, StateOption, CityOption } from '@/lib/location-data'
 
 // Property types for dropdown
 const PROPERTY_TYPES = [
@@ -198,6 +199,9 @@ export default function AddListingPage() {
   const { user, loading } = useAuth()
   const [loginPrompted, setLoginPrompted] = useState(false)
   const router = useRouter()
+  const [availableCities, setAvailableCities] = useState<CityOption[]>([])
+  const [selectedStateOption, setSelectedStateOption] = useState<StateOption | null>(null)
+  const [selectedCityOption, setSelectedCityOption] = useState<CityOption | null>(null)
 
   // If not authenticated, prompt login modal (no redirect) and gate the page UI
   useEffect(() => {
@@ -231,6 +235,24 @@ export default function AddListingPage() {
       // Then parse the text with AI
       const parsedData = await parseListingText(textToParse, user?.id)
       setFormData(prev => ({ ...prev, ...parsedData, userType: 'normal' })) // Default to normal user
+      
+      // Set state and city dropdowns if AI parsed them
+      if (parsedData.state) {
+        const stateOption = findStateByName(parsedData.state)
+        if (stateOption) {
+          setSelectedStateOption(stateOption)
+          const cities = getCitiesForState(stateOption.id)
+          setAvailableCities(cities)
+          
+          if (parsedData.city) {
+            const cityOption = findCityByName(parsedData.city, stateOption.id)
+            if (cityOption) {
+              setSelectedCityOption(cityOption)
+            }
+          }
+        }
+      }
+      
       setActiveTab('manual') // Switch to manual form after processing
     } catch (error) {
       console.error('AI parsing failed:', error)
@@ -299,6 +321,38 @@ export default function AddListingPage() {
     }
     
     return errors
+  }
+
+  const handleStateChange = (stateId: string) => {
+    const stateOption = INDIAN_STATES.find(s => s.id === stateId) || null
+    setSelectedStateOption(stateOption)
+    setSelectedCityOption(null)
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      state: stateOption?.name || '',
+      city: ''
+    }))
+    
+    // Load cities for the selected state
+    if (stateOption) {
+      const cities = getCitiesForState(stateOption.id)
+      setAvailableCities(cities)
+    } else {
+      setAvailableCities([])
+    }
+  }
+  
+  const handleCityChange = (cityId: string) => {
+    const cityOption = availableCities.find(c => c.id === cityId) || null
+    setSelectedCityOption(cityOption)
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      city: cityOption?.name || ''
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -638,35 +692,35 @@ URGENT: Male Flatmate Needed | Move-in immediately
           ) : (
             /* Manual Form View */
             <div className="h-full overflow-y-auto bg-gray-50">
-              <div className="max-w-6xl mx-auto p-6">
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="max-w-6xl mx-auto p-4">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Left Column */}
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     {/* Basic Information */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold">Property Details</CardTitle>
+                    <Card className="border border-gray-200 bg-white">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="text-base font-semibold text-gray-800">Property Details</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-3 px-4 pb-4">
                         <div>
-                          <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
+                          <Label htmlFor="title" className="text-xs font-medium text-gray-700 mb-1 block">Title *</Label>
                           <Input
                             id="title"
                             value={formData.title}
                             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                             placeholder="e.g., Spacious 2BHK in Koramangala"
                             required
-                            className="mt-1 border-gray-300"
+                            className="h-8 text-sm border-gray-300"
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label htmlFor="propertyType" className="text-sm font-medium text-gray-700">Property Type *</Label>
+                            <Label htmlFor="propertyType" className="text-xs font-medium text-gray-700 mb-1 block">Property Type *</Label>
                             <Select
                               value={formData.propertyType}
                               onValueChange={(value) => setFormData(prev => ({ ...prev, propertyType: value }))}
                             >
-                              <SelectTrigger className="mt-1 border-gray-300">
+                              <SelectTrigger className="h-8 text-sm border-gray-300">
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                               <SelectContent>
@@ -676,114 +730,130 @@ URGENT: Male Flatmate Needed | Move-in immediately
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <Label htmlFor="city" className="text-sm font-medium text-gray-700">City *</Label>
-                              <Input
-                                id="city"
-                                value={formData.city}
-                                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                                placeholder="e.g., Bangalore"
-                                required
-                                className="mt-1 border-gray-300"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="area" className="text-sm font-medium text-gray-700">Area/Locality</Label>
-                              <Input
-                                id="area"
-                                value={formData.area}
-                                onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
-                                placeholder="e.g., Koramangala, Gachibowli, HSR Layout"
-                                className="mt-1 border-gray-300"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="state" className="text-sm font-medium text-gray-700">State *</Label>
-                              <Input
-                                id="state"
-                                value={formData.state}
-                                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                                placeholder="e.g., Karnataka"
-                                required
-                                className="mt-1 border-gray-300"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country *</Label>
-                              <Input
-                                id="country"
-                                value={formData.country}
-                                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                                placeholder="e.g., India"
-                                required
-                                className="mt-1 border-gray-300"
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Building/Apartment Name */}
                           <div>
-                            <Label htmlFor="buildingName" className="text-sm font-medium text-gray-700">Building/Apartment Name</Label>
+                            <Label htmlFor="state" className="text-xs font-medium text-gray-700 mb-1 block">State *</Label>
+                            <Select
+                              value={selectedStateOption?.id || ''}
+                              onValueChange={handleStateChange}
+                            >
+                              <SelectTrigger className="h-8 text-sm border-gray-300">
+                                <SelectValue placeholder="Select state" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {INDIAN_STATES.map(state => (
+                                  <SelectItem key={state.id} value={state.id}>
+                                    {state.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="city" className="text-xs font-medium text-gray-700 mb-1 block">City *</Label>
+                            <Select
+                              value={selectedCityOption?.id || ''}
+                              onValueChange={handleCityChange}
+                              disabled={!selectedStateOption}
+                            >
+                              <SelectTrigger className="h-8 text-sm border-gray-300">
+                                <SelectValue placeholder={selectedStateOption ? "Select city" : "Select state first"} />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {availableCities.map(city => (
+                                  <SelectItem key={city.id} value={city.id}>
+                                    {city.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="area" className="text-xs font-medium text-gray-700 mb-1 block">Area/Locality</Label>
                             <Input
-                              id="buildingName"
-                              value={formData.buildingName}
-                              onChange={(e) => setFormData(prev => ({ ...prev, buildingName: e.target.value }))}
-                              placeholder="e.g., Prestige Shantiniketan, Brigade Gateway"
-                              className="mt-1 border-gray-300"
+                              id="area"
+                              value={formData.area}
+                              onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
+                              placeholder="e.g., Koramangala, Gachibowli"
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        
+                        <div>
+                          <Label htmlFor="buildingName" className="text-xs font-medium text-gray-700 mb-1 block">Building/Apartment Name</Label>
+                          <Input
+                            id="buildingName"
+                            value={formData.buildingName}
+                            onChange={(e) => setFormData(prev => ({ ...prev, buildingName: e.target.value }))}
+                            placeholder="e.g., Prestige Shantiniketan, Brigade Gateway"
+                            className="h-8 text-sm border-gray-300"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-3">
                           <div>
-                            <Label htmlFor="areaSqft" className="text-sm font-medium text-gray-700">Area (sq. ft.)</Label>
+                            <Label htmlFor="areaSqft" className="text-xs font-medium text-gray-700 mb-1 block">Area (sq. ft.)</Label>
                             <Input
                               id="areaSqft"
                               type="number"
                               value={formData.areaSqft}
                               onChange={(e) => setFormData(prev => ({ ...prev, areaSqft: e.target.value }))}
                               placeholder="e.g., 1200"
-                              className="mt-1 border-gray-300"
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                           <div>
-                            <Label htmlFor="floor" className="text-sm font-medium text-gray-700">Floor</Label>
+                            <Label htmlFor="floor" className="text-xs font-medium text-gray-700 mb-1 block">Floor</Label>
                             <Input
                               id="floor"
                               type="number"
                               value={formData.floor}
                               onChange={(e) => setFormData(prev => ({ ...prev, floor: e.target.value }))}
                               placeholder="e.g., 3"
-                              className="mt-1 border-gray-300"
+                              className="h-8 text-sm border-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="country" className="text-xs font-medium text-gray-700 mb-1 block">Country *</Label>
+                            <Input
+                              id="country"
+                              value={formData.country}
+                              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                              placeholder="India"
+                              required
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                         </div>
                         <div>
-                          <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
+                          <Label htmlFor="description" className="text-xs font-medium text-gray-700 mb-1 block">Description</Label>
                           <Textarea
                             id="description"
                             value={formData.description}
                             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                             placeholder="Describe your property, location benefits, and what you're looking for..."
-                            rows={3}
-                            className="mt-1 border-gray-300 resize-none"
+                            rows={2}
+                            className="text-sm border-gray-300 resize-none"
                           />
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* Pricing */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                          <DollarSign className="h-5 w-5 text-purple-500" />
+                    <Card className="border border-gray-200 bg-white">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="flex items-center gap-2 text-base font-semibold text-gray-800">
+                          <DollarSign className="h-4 w-4 text-purple-500" />
                           Pricing Details
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
+                      <CardContent className="space-y-3 px-4 pb-4">
+                        <div className="grid grid-cols-3 gap-3">
                           <div>
-                            <Label htmlFor="rent" className="text-sm font-medium text-gray-700">Monthly Rent *</Label>
+                            <Label htmlFor="rent" className="text-xs font-medium text-gray-700 mb-1 block">Monthly Rent *</Label>
                             <Input
                               id="rent"
                               type="number"
@@ -791,22 +861,22 @@ URGENT: Male Flatmate Needed | Move-in immediately
                               onChange={(e) => setFormData(prev => ({ ...prev, rent: e.target.value }))}
                               placeholder="25000"
                               required
-                              className="mt-1 border-gray-300"
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                           <div>
-                            <Label htmlFor="maintenance" className="text-sm font-medium text-gray-700">Maintenance</Label>
+                            <Label htmlFor="maintenance" className="text-xs font-medium text-gray-700 mb-1 block">Maintenance</Label>
                             <Input
                               id="maintenance"
                               type="number"
                               value={formData.maintenance}
                               onChange={(e) => setFormData(prev => ({ ...prev, maintenance: e.target.value }))}
                               placeholder="2000"
-                              className="mt-1 border-gray-300"
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                           <div>
-                            <Label htmlFor="securityDeposit" className="text-sm font-medium text-gray-700">Security Deposit *</Label>
+                            <Label htmlFor="securityDeposit" className="text-xs font-medium text-gray-700 mb-1 block">Security Deposit *</Label>
                             <Input
                               id="securityDeposit"
                               type="number"
@@ -814,18 +884,18 @@ URGENT: Male Flatmate Needed | Move-in immediately
                               onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
                               placeholder="50000"
                               required
-                              className="mt-1 border-gray-300"
+                              className="h-8 text-sm border-gray-300"
                             />
                           </div>
                         </div>
                         <div>
-                          <Label htmlFor="expenses" className="text-sm font-medium text-gray-700">Additional Expenses</Label>
+                          <Label htmlFor="expenses" className="text-xs font-medium text-gray-700 mb-1 block">Additional Expenses</Label>
                           <Input
                             id="expenses"
                             value={formData.expenses}
                             onChange={(e) => setFormData(prev => ({ ...prev, expenses: e.target.value }))}
                             placeholder="e.g., Electricity, WiFi, Gas split equally"
-                            className="mt-1 border-gray-300"
+                            className="h-8 text-sm border-gray-300"
                           />
                         </div>
                       </CardContent>
@@ -833,37 +903,38 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   </div>
 
                   {/* Right Column */}
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     {/* Highlights/Amenities */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold">Highlights & Amenities</CardTitle>
+                    <Card className="border border-gray-200 bg-white">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="text-base font-semibold text-gray-800">Highlights & Amenities</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-3">
+                      <CardContent className="px-4 pb-4">
+                        <div className="grid grid-cols-2 gap-2">
                           {AVAILABLE_HIGHLIGHTS.slice(0, 12).map(highlight => (
-                            <label key={highlight} className="flex items-center space-x-2 cursor-pointer">
+                            <label key={highlight} className="flex items-center space-x-2 cursor-pointer py-1">
                               <Checkbox
                                 checked={formData.highlights.includes(highlight)}
                                 onCheckedChange={() => handleHighlightToggle(highlight)}
+                                className="h-4 w-4"
                               />
-                              <span className="text-sm">{highlight}</span>
+                              <span className="text-xs">{highlight}</span>
                             </label>
                           ))}
                         </div>
                         {formData.highlights.length > 0 && (
-                          <div className="mt-4">
-                            <p className="text-sm text-gray-600 mb-2">Selected:</p>
-                            <div className="flex flex-wrap gap-2">
+                          <div className="mt-3">
+                            <p className="text-xs text-gray-600 mb-1">Selected:</p>
+                            <div className="flex flex-wrap gap-1">
                               {formData.highlights.map(highlight => (
-                                <Badge key={highlight} variant="secondary" className="bg-purple-50 text-purple-700 text-xs">
+                                <Badge key={highlight} variant="secondary" className="bg-purple-50 text-purple-700 text-xs px-2 py-1">
                                   {highlight}
                                   <button
                                     type="button"
                                     onClick={() => handleHighlightToggle(highlight)}
                                     className="ml-1 hover:bg-purple-200 rounded-full p-0.5"
                                   >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-2 w-2" />
                                   </button>
                                 </Badge>
                               ))}
@@ -874,14 +945,14 @@ URGENT: Male Flatmate Needed | Move-in immediately
                     </Card>
 
                     {/* Flatmate Preferences */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold">Flatmate Preferences</CardTitle>
+                    <Card className="border border-gray-200 bg-white">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="text-base font-semibold text-gray-800">Flatmate Preferences</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                      <CardContent className="space-y-3 px-4 pb-4">
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Gender Preference</Label>
+                            <Label className="text-xs font-medium text-gray-700 mb-1 block">Gender Preference</Label>
                             <Select
                               value={formData.flatmatePreferences.gender}
                               onValueChange={(value) => setFormData(prev => ({
@@ -889,7 +960,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 flatmatePreferences: { ...prev.flatmatePreferences, gender: value }
                               }))}
                             >
-                              <SelectTrigger className="mt-1 border-gray-300">
+                              <SelectTrigger className="h-8 text-sm border-gray-300">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -900,7 +971,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                             </Select>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Food Preference</Label>
+                            <Label className="text-xs font-medium text-gray-700 mb-1 block">Food Preference</Label>
                             <Select
                               value={formData.flatmatePreferences.food}
                               onValueChange={(value) => setFormData(prev => ({
@@ -908,7 +979,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 flatmatePreferences: { ...prev.flatmatePreferences, food: value }
                               }))}
                             >
-                              <SelectTrigger className="mt-1 border-gray-300">
+                              <SelectTrigger className="h-8 text-sm border-gray-300">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -921,7 +992,7 @@ URGENT: Male Flatmate Needed | Move-in immediately
                           </div>
                         </div>
 
-                        <div className="flex gap-6">
+                        <div className="flex gap-4">
                           <label className="flex items-center space-x-2 cursor-pointer">
                             <Checkbox
                               checked={formData.flatmatePreferences.smoker}
@@ -929,8 +1000,9 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 ...prev,
                                 flatmatePreferences: { ...prev.flatmatePreferences, smoker: checked as boolean }
                               }))}
+                              className="h-4 w-4"
                             />
-                            <span className="text-sm">Smoking allowed</span>
+                            <span className="text-xs">Smoking allowed</span>
                           </label>
                           <label className="flex items-center space-x-2 cursor-pointer">
                             <Checkbox
@@ -939,28 +1011,29 @@ URGENT: Male Flatmate Needed | Move-in immediately
                                 ...prev,
                                 flatmatePreferences: { ...prev.flatmatePreferences, pets: checked as boolean }
                               }))}
+                              className="h-4 w-4"
                             />
-                            <span className="text-sm">Pet friendly</span>
+                            <span className="text-xs">Pet friendly</span>
                           </label>
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* Contact & Images */}
-                    <Card className="shadow-sm border-gray-200/70 bg-white/95 backdrop-blur-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold">Contact & Images</CardTitle>
+                    <Card className="border border-gray-200 bg-white">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="text-base font-semibold text-gray-800">Contact & Images</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-3 px-4 pb-4">
                         <div>
-                          <Label htmlFor="contactNumber" className="text-sm font-medium text-gray-700">Contact Number *</Label>
+                          <Label htmlFor="contactNumber" className="text-xs font-medium text-gray-700 mb-1 block">Contact Number *</Label>
                           <Input
                             id="contactNumber"
                             value={formData.contactNumber}
                             onChange={(e) => setFormData(prev => ({ ...prev, contactNumber: e.target.value }))}
                             placeholder="e.g., +91 9876543210"
                             required
-                            className="mt-1 border-gray-300"
+                            className="h-8 text-sm border-gray-300"
                           />
                         </div>
 
@@ -977,20 +1050,20 @@ URGENT: Male Flatmate Needed | Move-in immediately
                   </div>
 
                   {/* Submit Button - Full Width Across Both Columns */}
-                  <div className="lg:col-span-2 pt-3">
+                  <div className="lg:col-span-2 pt-2">
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 text-sm font-semibold rounded-lg transition-all duration-200"
                     >
                       {isSubmitting ? (
                         <>
-                          <Upload className="h-5 w-5 mr-2 animate-spin" />
+                          <Upload className="h-4 w-4 mr-2 animate-spin" />
                           Submitting Listing...
                         </>
                       ) : (
                         <>
-                          <Home className="h-5 w-5 mr-2" />
+                          <Home className="h-4 w-4 mr-2" />
                           Submit Listing
                         </>
                       )}

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useSavedFilters, type SavedFilter } from '@/hooks/useSavedFilters'
+import * as Popover from '@radix-ui/react-popover'
 
 interface FilterOption {
   id: string
@@ -117,7 +118,6 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
   const { user } = useAuth()
   const [isSticky] = useState(false)
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [budgetRange, setBudgetRange] = useState<[number, number]>([6899, 200000])
   const [activeTab] = useState<'flats' | 'flats'>('flats')
   const [moreFiltersState, setMoreFiltersState] = useState<Record<string, string[]>>({})
@@ -228,19 +228,6 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
     // Keep dropdown open for multiple selections - don't close it
   }
 
-  const handleBudgetChange = (range: [number, number]) => {
-    setBudgetRange(range)
-    const newFilters = { ...activeFilters }
-    newFilters['budget'] = [`₹${range[0]} - ₹${range[1]}`]
-    setActiveFilters(newFilters)
-    onFiltersChange?.(newFilters)
-    
-    // Auto-save filters with freshly computed state if user is logged in
-    if (user) {
-      const merged = { ...newFilters, ...moreFiltersState }
-      saveCurrentFilters(merged)
-    }
-  }
 
   const clearAllFilters = async () => {
     setActiveFilters({})
@@ -439,7 +426,7 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
 
 
   return (
-    <div className="w-full sticky top-0 z-[9999]">
+    <div className="w-full sticky top-0 z-10">
       <div 
         ref={containerRef}
         className={`w-full transition-all duration-200 ease-out ${
@@ -465,13 +452,9 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
             <div className={`flex items-center justify-between gap-4 transition-all duration-300 ease-out`}>
               <div className="flex items-center gap-3 flex-1">
               {filters.map((filter) => (
-                <div key={filter.id} className="relative z-20">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setOpenDropdown(openDropdown === filter.id ? null : filter.id)
-                    }}
+                <Popover.Root key={filter.id}>
+                  <Popover.Trigger asChild>
+                    <button
                        className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-full transition-all duration-200 font-medium ${
                         activeFilters[filter.id]?.length 
                            ? 'bg-purple-500 text-white border-purple-500 shadow-md'
@@ -479,130 +462,115 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
                       }`}
                     >
                     {filter.label}
-                      <ChevronDown className={`h-4 w-4 transition-transform ${
-                          openDropdown === filter.id ? 'rotate-180' : ''
-                        }`} />
+                      <ChevronDown className="h-4 w-4" />
                     </button>
+                  </Popover.Trigger>
 
-                    {/* Dropdown menu */}
-                    {openDropdown === filter.id && (
-                      <div 
-
-                        className="absolute z-20 left-0 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
-                        style={{ 
-                          top: '100%',
-                          marginTop: '8px',
-                          minWidth: filter.id === 'budget' ? '320px' : '280px',
-                          maxHeight: '400px',
-                          overflowY: 'auto',
-                          zIndex: 100
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                                                 {filter.hasCustomDropdown && filter.id === 'budget' ? (
-                           <BudgetRangeSlider />
-                         ) : (
-                           <div className="px-5 py-4">
-                             <div className="flex flex-wrap gap-2">
-                               {filter.options?.map((option) => (
-                          <button
-                            key={option}
-                                   onClick={(e) => {
-                                     e.preventDefault()
-                                     e.stopPropagation()
-                                     toggleFilter(filter.id, option)
-                                   }}
-                                   className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
-                                activeFilters[filter.id]?.includes(option)
-                                       ? 'bg-purple-500 text-white border-purple-500 shadow-md'
-                                       : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
-                              }`}
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
-                           </div>
-                         )}
-                    </div>
-                  )}
-                  </div>
-                ))}
+                  <Popover.Portal>
+                    <Popover.Content
+                      className="z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-visible"
+                      style={{ 
+                        minWidth: filter.id === 'budget' ? '320px' : '280px',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                      }}
+                      sideOffset={8}
+                      align="start"
+                    >
+                      {filter.hasCustomDropdown && filter.id === 'budget' ? (
+                        <BudgetRangeSlider />
+                      ) : (
+                        <div className="px-5 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {filter.options?.map((option) => (
+                              <button
+                                key={option}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  toggleFilter(filter.id, option)
+                                }}
+                                className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
+                                  activeFilters[filter.id]?.includes(option)
+                                    ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+              ))}
               </div>
 
                              <div className="flex items-center gap-3">
-                 <div className="relative z-20">
-                   <button
-                     onClick={(e) => {
-                       e.preventDefault()
-                       e.stopPropagation()
-                       setOpenDropdown(openDropdown === 'more' ? null : 'more')
-                     }}
-                     className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-full transition-all duration-200 font-medium ${
-                       Object.keys(moreFiltersState).length > 0
-                         ? 'bg-purple-500 text-white border-purple-500 shadow-md'
-                         : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
-                     }`}
-                   >
-                     <SlidersHorizontal className="h-4 w-4" />
-                     More Filters
-                     {Object.keys(moreFiltersState).length > 0 && (
-                       <span className="ml-1 bg-white text-purple-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
-                         {Object.values(moreFiltersState).reduce((acc, filters) => acc + filters.length, 0)}
-                       </span>
-                     )}
-                     <ChevronDown className={`h-4 w-4 transition-transform ${
-                       openDropdown === 'more' ? 'rotate-180' : ''
-                     }`} />
-                   </button>
+                 <Popover.Root>
+                   <Popover.Trigger asChild>
+                     <button
+                       className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-full transition-all duration-200 font-medium ${
+                         Object.keys(moreFiltersState).length > 0
+                           ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                           : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                       }`}
+                     >
+                       <SlidersHorizontal className="h-4 w-4" />
+                       More Filters
+                       {Object.keys(moreFiltersState).length > 0 && (
+                         <span className="ml-1 bg-white text-purple-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                           {Object.values(moreFiltersState).reduce((acc, filters) => acc + filters.length, 0)}
+                         </span>
+                       )}
+                       <ChevronDown className="h-4 w-4" />
+                     </button>
+                   </Popover.Trigger>
 
-                  {openDropdown === 'more' && (
-                    <div 
-                      className="absolute right-0 bg-white border border-gray-200 rounded-lg shadow-xl w-[480px]"
-                      style={{
-                        top: '100%',
-                        marginTop: '8px',
-                        zIndex: 100,
-                        maxHeight: '520px'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-
-
-                      {/* Scrollable content */}
-                      <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'hidden' }} className="px-5 py-4 space-y-6">
-                        {Object.entries(moreFilters).map(([categoryKey, category]) => (
-                          <div key={categoryKey} className="space-y-3">
-                            <h4 className="text-base font-semibold text-gray-900">{category.label}</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {category.options.map((option) => {
-                                const isSelected = moreFiltersState[categoryKey]?.includes(option.id) || false
-                                return (
-                                  <button
-                                    key={option.id}
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      toggleMoreFilter(categoryKey, option.id)
-                                    }}
-                                    className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
-                                      isSelected
-                                        ? 'bg-purple-500 text-white border-purple-500 shadow-md'
-                                        : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
-                                    }`}
-                                  >
-                                    {option.label}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                    </div>
-            )}
-        </div>
+                   <Popover.Portal>
+                     <Popover.Content 
+                       className="z-50 bg-white border border-gray-200 rounded-lg shadow-xl w-[480px]"
+                       style={{
+                         maxHeight: '520px'
+                       }}
+                       sideOffset={8}
+                       align="end"
+                     >
+                       {/* Scrollable content */}
+                       <div style={{ maxHeight: '380px', overflowY: 'auto', overflowX: 'hidden' }} className="px-5 py-4 space-y-6">
+                         {Object.entries(moreFilters).map(([categoryKey, category]) => (
+                           <div key={categoryKey} className="space-y-3">
+                             <h4 className="text-base font-semibold text-gray-900">{category.label}</h4>
+                             <div className="flex flex-wrap gap-2">
+                               {category.options.map((option) => {
+                                 const isSelected = moreFiltersState[categoryKey]?.includes(option.id) || false
+                                 return (
+                                   <button
+                                     key={option.id}
+                                     onClick={(e) => {
+                                       e.preventDefault()
+                                       e.stopPropagation()
+                                       toggleMoreFilter(categoryKey, option.id)
+                                     }}
+                                     className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
+                                       isSelected
+                                         ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                                         : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
+                                     }`}
+                                   >
+                                     {option.label}
+                                   </button>
+                                 )
+                               })}
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     </Popover.Content>
+                   </Popover.Portal>
+                 </Popover.Root>
 
                  {getActiveFilterCount() > 0 && !isSticky && (
                    <button
@@ -691,9 +659,6 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
       />
 
 
-{openDropdown && (
-<div className='z-[19] absolute inset-0' onClick={() => setOpenDropdown(null)}/>
-)}
       
     </div>
   )

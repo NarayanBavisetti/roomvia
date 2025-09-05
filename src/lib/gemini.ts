@@ -1,10 +1,10 @@
 import "server-only";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
+// Keep same interfaces for compatibility
 export interface ParsedListingResult {
   formData: {
     title: string;
@@ -39,7 +39,9 @@ export interface AIInsightResult {
   recommendations: string[];
 }
 
-class OpenAIService {
+class GeminiService {
+  private model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
   // Remove emojis and problematic characters from text
   private cleanTextForParsing(text: string): string {
     // Remove emojis and other Unicode symbols that might cause issues
@@ -98,7 +100,7 @@ LOCATION EXTRACTION RULES:
 - Examples: "Gachibowli, Hyderabad" -> city: "Hyderabad", state: "Telangana"
 - Examples: "Bangalore" -> city: "Bangalore", state: "Karnataka"
 
-Return JSON in this exact format:
+Return ONLY valid JSON in this exact format (no markdown, no extra text):
 {
   "formData": {
     "title": "string",
@@ -127,36 +129,38 @@ Return JSON in this exact format:
   "confidence": 0.95
 }`;
 
-      const userPrompt =
-        inputType === "facebook"
-          ? `Parse this Facebook post about a rental property:\n\n${cleanedText}`
-          : `Parse this rental listing text:\n\n${cleanedText}`;
+      const userPrompt = inputType === "facebook"
+        ? `Parse this Facebook post about a rental property:\n\n${cleanedText}`
+        : `Parse this rental listing text:\n\n${cleanedText}`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 2500, // Increased for longer text
-        response_format: { type: "json_object" }, // Ensure JSON response
-      });
+      const fullPrompt = `${systemPrompt}\n\nUser input: ${userPrompt}`;
 
-      const content = completion.choices[0]?.message?.content;
+      const result = await this.model.generateContent(fullPrompt);
+      const response = await result.response;
+      const content = response.text();
+
       if (!content) {
-        throw new Error("No response from OpenAI");
+        throw new Error("No response from Gemini");
       }
 
-      console.log("Raw OpenAI response:", content);
+      console.log("Raw Gemini response:", content);
+
+      // Clean the response - remove markdown code blocks if present
+      let cleanedContent = content.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/\n?```$/g, '');
+      } else if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\n?/g, '').replace(/\n?```$/g, '');
+      }
 
       // Parse JSON response with better error handling
       let parsed;
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(cleanedContent);
       } catch (jsonError) {
         console.error("JSON parsing failed:", jsonError);
         console.error("Raw content:", content);
+        console.error("Cleaned content:", cleanedContent);
         throw new Error("Failed to parse AI response as JSON. The AI might have returned malformed JSON.");
       }
 
@@ -192,24 +196,28 @@ Return JSON in this exact format:
         contactNumber: parsed.formData.contactNumber || ""
       };
 
-      const result = {
+      const finalResult = {
         formData,
         confidence: parsed.confidence || 0.8
       };
 
-      console.log("Parsed result:", result);
-      return result as ParsedListingResult;
+      console.log("Parsed result:", finalResult);
+      return finalResult as ParsedListingResult;
     } catch (error) {
-      console.error("OpenAI parsing error:", error);
+      console.error("Gemini parsing error:", error);
       
-      // If OpenAI fails, try fallback parsing
-      if (error instanceof Error && (error.message.includes('429') || error.message.includes('quota'))) {
-        console.log("OpenAI quota exceeded, trying fallback parsing...");
+      // If Gemini fails, try fallback parsing
+      if (error instanceof Error && (
+        error.message.includes('429') || 
+        error.message.includes('quota') || 
+        error.message.includes('RESOURCE_EXHAUSTED')
+      )) {
+        console.log("Gemini quota exceeded, trying fallback parsing...");
         try {
           return this.fallbackParseListingText(text);
         } catch (fallbackError) {
           console.error("Fallback parsing also failed:", fallbackError);
-          throw new Error("Both AI and fallback parsing failed. Please check your OpenAI API credits or fill the form manually.");
+          throw new Error("Both AI and fallback parsing failed. Please check your Google API credits or fill the form manually.");
         }
       }
       
@@ -218,7 +226,7 @@ Return JSON in this exact format:
     }
   }
 
-  // Fallback parsing method using regex when OpenAI is unavailable
+  // Fallback parsing method using regex when Gemini is unavailable
   private fallbackParseListingText(text: string): ParsedListingResult {
     console.log("Using fallback regex parsing...");
     
@@ -340,28 +348,25 @@ Focus on:
 
 Keep your response practical, data-driven, and formatted for easy reading. Use bullet points and clear sections.`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      });
+      const fullPrompt = `${systemPrompt}\n\nData to analyze:\n${prompt}`;
 
-      const content = completion.choices[0]?.message?.content;
+      const result = await this.model.generateContent(fullPrompt);
+      const response = await result.response;
+      const content = response.text();
+
       if (!content) {
-        throw new Error("No response from OpenAI");
+        throw new Error("No response from Gemini");
       }
 
       // Extract key recommendations
       const recommendations = content
         .split("\n")
         .filter(
-          (line) => line.trim().startsWith("•") || line.trim().startsWith("-")
+          (line) => line.trim().startsWith("•") || 
+                   line.trim().startsWith("-") ||
+                   line.trim().startsWith("*")
         )
-        .map((line) => line.replace(/^[•-]\s*/, "").trim())
+        .map((line) => line.replace(/^[•\-*]\s*/, "").trim())
         .filter(Boolean)
         .slice(0, 5); // Top 5 recommendations
 
@@ -371,8 +376,20 @@ Keep your response practical, data-driven, and formatted for easy reading. Use b
         recommendations,
       };
     } catch (error) {
-      console.error("OpenAI insights error:", error);
-      return null;
+      console.error("Gemini insights error:", error);
+      
+      // Check if this is a quota/rate limit error and throw to trigger fallback
+      if (error instanceof Error && 
+          (error.message.includes('429') || 
+           error.message.includes('quota') || 
+           error.message.includes('RESOURCE_EXHAUSTED') ||
+           error.message.includes('insufficient_quota'))) {
+        console.log("Gemini quota exceeded for insights generation");
+        throw new Error(`Gemini quota exceeded: ${error.message}`);
+      }
+      
+      // For other errors, still throw to trigger fallback
+      throw error;
     }
   }
 
@@ -398,19 +415,16 @@ Keep your response practical, data-driven, and formatted for easy reading. Use b
 
 Write 2-3 sentences that would appeal to potential tenants. Focus on the benefits and location advantages.`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 200,
-      });
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const content = response.text();
 
-      return completion.choices[0]?.message?.content || null;
+      return content || null;
     } catch (error) {
-      console.error("OpenAI description generation error:", error);
+      console.error("Gemini description generation error:", error);
       return null;
     }
   }
 }
 
-export const openAIService = new OpenAIService();
+export const geminiService = new GeminiService();

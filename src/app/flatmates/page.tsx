@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '@/components/navbar'
 import FlatmateCard from '@/components/flatmate-card'
 import { supabase, type Flatmate } from '@/lib/supabase'
-import { Users, Search, Filter, Heart } from 'lucide-react'
+import { Users, Search, Filter, Bookmark } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -108,7 +108,7 @@ export default function FlatlatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" suppressHydrationWarning>
+    <div className="min-h-screen bg-white-50" suppressHydrationWarning>
       <Navbar />
       
       {/* Hero Section */}
@@ -126,22 +126,9 @@ export default function FlatlatesPage() {
 
           {/* Search and Filter Bar */}
           <div className="max-w-4xl mx-auto">
-            {/* Search Input */}
-            <div className="mb-6">
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  type="text"
-                  placeholder="Search by name, company, or location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 h-14 text-lg border-gray-200 focus:border-purple-500 rounded-xl bg-gray-50 focus:bg-white transition-colors"
-                />
-              </div>
-            </div>
 
             {/* Filter Buttons */}
-            <div className="bg-gray-50 rounded-2xl p-4 sm:p-6">
+            <div className="bg-white-50 rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-center mb-4">
                 <Filter className="h-4 w-4 text-gray-500 mr-2" />
                 <span className="text-sm font-medium text-gray-700">Filter by preferences</span>
@@ -153,7 +140,7 @@ export default function FlatlatesPage() {
                   { key: 'all', label: 'All Profiles', shortLabel: 'All', icon: <Users className="h-4 w-4" /> },
                   { key: 'male', label: 'Male', shortLabel: 'Male', icon: <Users className="h-4 w-4" /> },
                   { key: 'female', label: 'Female', shortLabel: 'Female', icon: <Users className="h-4 w-4" /> },
-                  { key: 'non-smoker', label: 'Non-smoker', shortLabel: 'Non-smoker', icon: <Heart className="h-4 w-4" /> },
+                  { key: 'non-smoker', label: 'Non-smoker', shortLabel: 'Non-smoker', icon: <Bookmark className="h-4 w-4" /> },
                   { key: 'veg', label: 'Vegetarian', shortLabel: 'Vegetarian', icon: <Filter className="h-4 w-4" /> },
                   { key: 'gated', label: 'Gated Community', shortLabel: 'Gated', icon: <Filter className="h-4 w-4" /> }
                 ].map((filter) => (
@@ -202,12 +189,12 @@ export default function FlatlatesPage() {
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">
                 <div className="p-6">
-                  <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto mb-4" />
+                  <div className="w-20 h-20 bg-white-200 rounded-full mx-auto mb-4" />
                   <div className="space-y-3 text-center">
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mx-auto" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
-                    <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto" />
-                    <div className="h-8 bg-gray-200 rounded w-full" />
+                    <div className="h-5 bg-white-200 rounded w-3/4 mx-auto" />
+                    <div className="h-4 bg-white-200 rounded w-1/2 mx-auto" />
+                    <div className="h-6 bg-white-200 rounded w-2/3 mx-auto" />
+                    <div className="h-8 bg-white-200 rounded w-full" />
                   </div>
                 </div>
               </div>
@@ -215,20 +202,6 @@ export default function FlatlatesPage() {
           </div>
         ) : (
           <>
-            {/* Results count */}
-            <div className="mb-8">
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <p className="text-gray-700 font-medium text-center">
-                  <span className="text-purple-500 font-bold text-lg">{filteredFlatmates.length}</span>
-                  {' '}{filteredFlatmates.length === 1 ? 'profile' : 'profiles'} found
-                  {searchQuery && (
-                    <span className="ml-1 text-gray-600">
-                      for &quot;<span className="font-semibold text-gray-800">{searchQuery}</span>&quot;
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
 
             {/* Flatmates grid */}
             {filteredFlatmates.length > 0 ? (
