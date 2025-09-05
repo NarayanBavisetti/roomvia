@@ -12,13 +12,24 @@ interface ProfileImageUploadProps {
   onImageChange: (url: string) => void
   disabled?: boolean
   className?: string
+  userName?: string // Add userName prop to generate initials consistently
+}
+
+// Generate initials from name (same logic as FlatmateCard)
+const getInitials = (name?: string) => {
+  if (!name) return 'U'
+  const parts = name.trim().split(' ')
+  const first = parts[0]?.charAt(0) || ''
+  const second = parts.length > 1 ? parts[1].charAt(0) : ''
+  return (first + second).toUpperCase()
 }
 
 export default function ProfileImageUpload({
   imageUrl,
   onImageChange,
   disabled = false,
-  className = ''
+  className = '',
+  userName = ''
 }: ProfileImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -132,7 +143,7 @@ export default function ProfileImageUpload({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
-              <User className="w-7 h-7 text-gray-400" />
+              <span className="text-lg font-medium text-gray-700">{getInitials(userName)}</span>
             </div>
           )}
           

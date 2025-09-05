@@ -101,12 +101,12 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
   }
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
-      <div className="p-5">
+    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200 h-full flex flex-col">
+      <div className="p-5 flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-start gap-4">
-          <div className="relative">
-            <Avatar className="h-14 w-14 ring-2 ring-white shadow-sm">
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-12 w-12 ring-2 ring-white shadow-sm">
               {flatmate.image_url ? (
                 <AvatarImage src={flatmate.image_url} alt={flatmate.name} />
               ) : null}
@@ -118,8 +118,8 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 leading-tight">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-semibold text-gray-900 leading-tight truncate">
                   {flatmate.name}
                 </h3>
                 <p className="text-xs text-gray-600 mt-0.5">{flatmate.age}y • {flatmate.gender}</p>
@@ -127,25 +127,27 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
               <button
                 onClick={handleToggleSave}
                 aria-pressed={isSaved}
-                className="p-1.5 bg-white/90 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
+                className="flex-shrink-0 p-1.5 bg-white/90 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm ml-2"
               >
-                <Bookmark className={`h-4 w-4 ${isSaved ? 'text-purple-600' : 'text-gray-600'}`} />
+                <Bookmark className={`h-3.5 w-3.5 ${isSaved ? 'text-purple-600' : 'text-gray-600'}`} />
               </button>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2 space-y-1">
               {flatmate.company && (
-                <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[11px] px-2.5 py-0.5 rounded-md inline-flex items-center">
-                  <Building2 className="h-3 w-3 mr-1" />
-                  {flatmate.company}
+                <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[10px] px-2 py-0.5 rounded-md inline-flex items-center max-w-full">
+                  <Building2 className="h-2.5 w-2.5 mr-1 flex-shrink-0" />
+                  <span className="truncate">{flatmate.company}</span>
                 </Badge>
               )}
-              <div className="text-xs text-gray-500 flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                <span className="truncate">
-                  {[flatmate.city, flatmate.state].filter(Boolean).join(', ')}
-                </span>
-              </div>
+              {([flatmate.city, flatmate.state].filter(Boolean).length > 0) && (
+                <div className="text-xs text-gray-500 flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">
+                    {[flatmate.city, flatmate.state].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -158,68 +160,85 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Badge variant="outline" className={`text-[11px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 ${flatmate.food_preference === 'Veg' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-            <Leaf className="h-3 w-3" />
+        {/* Tags - Fixed height container */}
+        <div className="mt-3 min-h-[28px] flex flex-wrap gap-1.5 content-start">
+          <Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 ${
+            flatmate.food_preference === 'Veg' 
+              ? 'bg-green-50 border-green-200 text-green-700' 
+              : flatmate.food_preference === 'Non-Veg'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : 'bg-gray-50 border-gray-200 text-gray-700'
+          }`}>
+            <Leaf className="h-2.5 w-2.5" />
             {flatmate.food_preference}
           </Badge>
-          <Badge variant="outline" className={`text-[11px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 ${flatmate.non_smoker ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
-            {flatmate.non_smoker ? <CheckCircle2 className="h-3 w-3" /> : <Ban className="h-3 w-3" />}
+          <Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 ${
+            flatmate.non_smoker 
+              ? 'bg-blue-50 border-blue-200 text-blue-700' 
+              : 'bg-orange-50 border-orange-200 text-orange-700'
+          }`}>
+            {flatmate.non_smoker ? <CheckCircle2 className="h-2.5 w-2.5" /> : <Ban className="h-2.5 w-2.5" />}
             {flatmate.non_smoker ? 'Non-smoker' : 'Smoker'}
           </Badge>
           {flatmate.gated_community && (
-            <Badge variant="outline" className="text-[11px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 bg-purple-50 border-purple-200 text-purple-700">
-              <Shield className="h-3 w-3" /> Gated Community
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 bg-purple-50 border-purple-200 text-purple-700">
+              <Shield className="h-2.5 w-2.5" /> Gated
             </Badge>
           )}
         </div>
 
-        {/* Preferred locations */}
-        {preferredLocations.length > 0 && (
-          <div className="mt-3">
-            <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-              <MapPin className="h-3.5 w-3.5 text-gray-400" />
-              <span>Preferred locations</span>
+        {/* Flexible content area */}
+        <div className="mt-3 flex-1 space-y-3 min-h-0">
+          {/* Preferred locations */}
+          {preferredLocations.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1.5">
+                <MapPin className="h-3 w-3 text-gray-400" />
+                <span>Preferred areas</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {preferredLocations.slice(0, 2).map((loc, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0.5 bg-white border-gray-200 text-gray-600 rounded-md max-w-full">
+                    <span className="truncate">{loc}</span>
+                  </Badge>
+                ))}
+                {preferredLocations.length > 2 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-white border-gray-200 text-gray-600 rounded-md">
+                    +{preferredLocations.length - 2}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {preferredLocations.slice(0, 3).map((loc, i) => (
-                <Badge key={i} variant="outline" className="text-[11px] px-2 py-0.5 bg-white border-gray-200 text-gray-700 rounded-md">
-                  {loc}
-                </Badge>
-              ))}
-              {preferredLocations.length > 3 && (
-                <Badge variant="outline" className="text-[11px] px-2 py-0.5 bg-white border-gray-200 text-gray-700 rounded-md">+{preferredLocations.length - 3}</Badge>
-              )}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Amenities */}
-        {amenities.length > 0 && (
-          <div className="mt-3">
-            <div className="text-xs text-gray-500 mb-1">Amenities</div>
-            <div className="flex flex-wrap gap-1.5">
-              {amenities.slice(0, 4).map((am, i) => (
-                <Badge key={i} variant="outline" className="text-[11px] px-2 py-0.5 bg-white border-gray-200 text-gray-700 rounded-md">
-                  {am}
-                </Badge>
-              ))}
-              {amenities.length > 4 && (
-                <Badge variant="outline" className="text-[11px] px-2 py-0.5 bg-white border-gray-200 text-gray-700 rounded-md">+{amenities.length - 4}</Badge>
-              )}
+          {/* Amenities */}
+          {amenities.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 mb-1.5">Amenities</div>
+              <div className="flex flex-wrap gap-1">
+                {amenities.slice(0, 3).map((am, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0.5 bg-white border-gray-200 text-gray-600 rounded-md max-w-full">
+                    <span className="truncate">{am}</span>
+                  </Badge>
+                ))}
+                {amenities.length > 3 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-white border-gray-200 text-gray-600 rounded-md">
+                    +{amenities.length - 3}
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Actions */}
-        <div className="mt-4 flex gap-2">
+        {/* Actions - Always at bottom */}
+        <div className="mt-4 pt-3 border-t border-gray-100">
           <Button 
             onClick={handleConnect}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <MessageCircle className="h-4 w-4" />
-            Chat
+            Connect
           </Button>
         </div>
       </div>
