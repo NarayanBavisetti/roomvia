@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
       data: { totalSearches, uniqueUsers },
     });
   } catch (e) {
+    console.error("Broker insights metrics error:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-

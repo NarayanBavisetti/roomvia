@@ -19,6 +19,26 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
   const [saving, setSaving] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const { user } = useAuth()
+
+  // Check if flat is already saved when component loads
+  useEffect(() => {
+    const checkSaveStatus = async () => {
+      if (!user) {
+        setIsSaved(false)
+        return
+      }
+      try {
+        const { savesApi } = await import('@/lib/saves')
+        const saved = await savesApi.isSaved('flat', flat.id)
+        setIsSaved(saved)
+      } catch (error) {
+        console.error('Error checking save status:', error)
+        setIsSaved(false)
+      }
+    }
+    checkSaveStatus()
+  }, [user, flat.id])
 
   // Auto-advance slideshow if multiple images
   useEffect(() => {
@@ -40,7 +60,6 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
     if (!flat.images || flat.images.length <= 1) return
     setCurrentIndex(prev => (prev + 1) % flat.images!.length)
   }
-  const { user } = useAuth()
   const { openChat } = useChat()
 
   const handleMessageOwner = (e: React.MouseEvent) => {

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { Upload, X, User, Camera, Loader2 } from 'lucide-react'
+import { Upload, X, Camera, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { validateImageFile } from '@/lib/cloudinary'
 
@@ -58,12 +58,20 @@ export default function ProfileImageUpload({
         }
       })
 
-      const response = await new Promise<{ success: boolean; image: any; error?: string }>((resolve, reject) => {
+      interface UploadResponseImage { url: string }
+      const response = await new Promise<{ success: boolean; image?: UploadResponseImage; error?: string }>((resolve, reject) => {
         xhr.addEventListener('load', () => {
           if (xhr.status === 200) {
             try {
-              const result = JSON.parse(xhr.responseText)
-              resolve(result)
+              const result = JSON.parse(xhr.responseText) as { success: boolean; image?: { url?: string }; error?: string }
+              // Ensure the resolved value matches the expected type
+              if (result.success && result.image && typeof result.image.url === 'string') {
+                resolve({ success: true, image: { url: result.image.url } })
+              } else if (!result.success) {
+                resolve({ success: false, error: result.error })
+              } else {
+                resolve({ success: false, error: 'Invalid response from server' })
+              }
             } catch {
               reject(new Error('Invalid response from server'))
             }
@@ -88,7 +96,7 @@ export default function ProfileImageUpload({
         xhr.send(formData)
       })
 
-      if (response.success && response.image) {
+      if (response.success && response.image && typeof response.image.url === 'string') {
         onImageChange(response.image.url)
       } else {
         throw new Error(response.error || 'Upload failed')

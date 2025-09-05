@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Heart, FileText, Settings, BarChart3 } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Bookmark, FileText, Settings, BarChart3 } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -278,7 +278,7 @@ export default function Navbar() {
                   >
                     <div className="flex items-center gap-2 w-full">
                       <div className="p-1.5 rounded-md bg-red-50 group-hover:bg-red-100 transition-colors">
-                        <Heart className="h-4 w-4 text-red-600" />
+                        <Bookmark className="h-4 w-4 text-red-600" />
                       </div>
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Saved</span>
                     </div>

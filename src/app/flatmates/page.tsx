@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '@/components/navbar'
 import FlatmateCard from '@/components/flatmate-card'
 import { supabase, type Flatmate } from '@/lib/supabase'
-import { Users, Search, Filter, Heart } from 'lucide-react'
+import { Users, Search, Filter, Bookmark } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -140,7 +140,7 @@ export default function FlatlatesPage() {
                   { key: 'all', label: 'All Profiles', shortLabel: 'All', icon: <Users className="h-4 w-4" /> },
                   { key: 'male', label: 'Male', shortLabel: 'Male', icon: <Users className="h-4 w-4" /> },
                   { key: 'female', label: 'Female', shortLabel: 'Female', icon: <Users className="h-4 w-4" /> },
-                  { key: 'non-smoker', label: 'Non-smoker', shortLabel: 'Non-smoker', icon: <Heart className="h-4 w-4" /> },
+                  { key: 'non-smoker', label: 'Non-smoker', shortLabel: 'Non-smoker', icon: <Bookmark className="h-4 w-4" /> },
                   { key: 'veg', label: 'Vegetarian', shortLabel: 'Vegetarian', icon: <Filter className="h-4 w-4" /> },
                   { key: 'gated', label: 'Gated Community', shortLabel: 'Gated', icon: <Filter className="h-4 w-4" /> }
                 ].map((filter) => (

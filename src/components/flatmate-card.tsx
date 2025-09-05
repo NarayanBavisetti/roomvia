@@ -21,7 +21,7 @@ import {
   Ban,
   Leaf
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
 import type { Flatmate } from '@/lib/supabase'
@@ -39,6 +39,26 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
   const [saving, setSaving] = useState(false)
   const { user } = useAuth()
   const { openChat } = useChat()
+  
+  // Check if flatmate is already saved when component loads
+  useEffect(() => {
+    const checkSaveStatus = async () => {
+      if (!user) {
+        setIsSaved(false)
+        return
+      }
+      try {
+        const { savesApi } = await import('@/lib/saves')
+        const saved = await savesApi.isSaved('person', flatmate.id)
+        setIsSaved(saved)
+      } catch (error) {
+        console.error('Error checking save status:', error)
+        setIsSaved(false)
+      }
+    }
+    checkSaveStatus()
+  }, [user, flatmate.id])
+  
   // Defensive defaults for optional fields
   const amenities: string[] = Array.isArray(flatmate.amenities) ? flatmate.amenities : []
   const preferredLocations: string[] = Array.isArray(flatmate.preferred_locations) ? flatmate.preferred_locations : []
@@ -101,7 +121,21 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
   }
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200 h-full flex flex-col">
+    <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200 h-full flex flex-col">
+      {/* Save button - consistent overlay position */}
+      <button
+        onClick={handleToggleSave}
+        aria-pressed={isSaved}
+        title={isSaved ? 'Unsave' : 'Save'}
+        className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 hover:bg-white transition-all duration-200 shadow-sm hover:scale-105 z-10"
+      >
+        {saving ? (
+          <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Bookmark className={`h-4 w-4 transition-colors ${isSaved ? 'text-purple-600 fill-current' : 'text-gray-600 hover:text-purple-400'}`} />
+        )}
+      </button>
+
       <div className="p-5 flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-start gap-4">
@@ -124,13 +158,6 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
                 </h3>
                 <p className="text-xs text-gray-600 mt-0.5">{flatmate.age}y • {flatmate.gender}</p>
               </div>
-              <button
-                onClick={handleToggleSave}
-                aria-pressed={isSaved}
-                className="flex-shrink-0 p-1.5 bg-white/90 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm ml-2"
-              >
-                <Bookmark className={`h-3.5 w-3.5 ${isSaved ? 'text-purple-600' : 'text-gray-600'}`} />
-              </button>
             </div>
 
             <div className="mt-2 space-y-1">

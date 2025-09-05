@@ -27,8 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Share,
-  Heart,
-  HeartOff
+  Bookmark
 } from 'lucide-react'
 
 interface ListingDetail {
@@ -79,10 +78,30 @@ export default function ListingDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [, setCurrentImageIndex] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   
   const listingId = params?.id as string
+
+  // Check if listing is saved when component loads
+  useEffect(() => {
+    const checkSaveStatus = async () => {
+      if (!user || !listingId) {
+        setIsLiked(false)
+        return
+      }
+      try {
+        const { savesApi } = await import('@/lib/saves')
+        const saved = await savesApi.isSaved('flat', listingId)
+        setIsLiked(saved)
+      } catch (error) {
+        console.error('Error checking save status:', error)
+        setIsLiked(false)
+      }
+    }
+    checkSaveStatus()
+  }, [user, listingId])
 
   useEffect(() => {
     if (!listingId) return
@@ -132,6 +151,36 @@ export default function ListingDetailPage() {
     fetchListing()
   }, [listingId])
 
+  const handleToggleSave = async () => {
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
+      return
+    }
+    if (saving || !listingId) return
+    
+    setSaving(true)
+    const previous = isLiked
+    try {
+      // Optimistic UI update
+      setIsLiked(!previous)
+      const { savesApi } = await import('@/lib/saves')
+      const { saved, error } = await savesApi.toggleSave('flat', listingId)
+      if (error) {
+        console.error('Save toggle failed:', error)
+        setIsLiked(previous)
+      } else {
+        setIsLiked(saved)
+      }
+    } catch (e) {
+      console.error('Save toggle failed:', e)
+      setIsLiked(previous)
+    } finally {
+      setSaving(false)
+    }
+  }
+
 
   // Autoplay for image slideshow
   useEffect(() => {
@@ -144,44 +193,36 @@ export default function ListingDetailPage() {
 
   const handleChatClick = () => {
     if (!user) {
-      // Redirect to login
-      router.push('/auth/login')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('open-login-modal'))
+      }
       return
     }
-    
-    if (!listing || !listing.profiles) {
-      console.error('Missing listing or profile data')
-      return
+    if (listing?.user_id) {
+      openChat(listing.user_id, `listing_${listing.id}`, listing.id)
     }
-    
-    // Open chat with the listing owner
-    openChat(listing.user_id, `user_${listing.user_id}`, listing.id)
   }
 
-  const toggleLike = () => {
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-    setIsLiked(!isLiked)
-    // TODO: Implement save/unsave functionality
-  }
+  // Use handleToggleSave instead of toggleLike
 
   const handleShare = async () => {
+    const url = window.location.href
+    const title = listing?.title || 'Check out this property'
+    
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: listing?.title,
-          text: `Check out this property: ${listing?.title}`,
-          url: window.location.href,
-        })
+        await navigator.share({ title, url })
       } catch (err) {
-        console.log('Error sharing:', err)
+        console.log('Share cancelled')
       }
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href)
-      // TODO: Show toast notification
+      // Fallback to copying to clipboard
+      try {
+        await navigator.clipboard.writeText(url)
+        console.log('Link copied to clipboard')
+      } catch (err) {
+        console.error('Failed to copy link', err)
+      }
     }
   }
 
@@ -314,10 +355,10 @@ export default function ListingDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={toggleLike}
-                      className="text-gray-400 hover:text-red-500 p-2 h-8 w-8"
+                      onClick={handleToggleSave}
+                      className="text-gray-400 hover:text-purple-600 p-2 h-8 w-8"
                     >
-                      {isLiked ? <Heart className="h-4 w-4 fill-red-500 text-red-500" /> : <Heart className="h-4 w-4" />}
+                      <Bookmark className={`h-4 w-4 ${isLiked ? 'text-purple-600 fill-current' : ''}`} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -481,6 +522,33 @@ export default function ListingDetailPage() {
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Start Chat
                       </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleToggleSave}
+                          disabled={saving}
+                          className={`border-gray-200 text-sm py-2.5 rounded-lg transition-colors ${
+                            isLiked 
+                              ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' 
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {saving ? (
+                            <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Bookmark className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current text-purple-700' : ''}`} />
+                          )}
+                          {isLiked ? 'Saved' : 'Save'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleShare}
+                          className="border-gray-200 text-gray-700 hover:bg-gray-50 text-sm py-2.5 rounded-lg"
+                        >
+                          <Share className="h-4 w-4 mr-2" />
+                          Share
+                        </Button>
+                      </div>
                       <Button
                         variant="outline"
                         className="w-full border-gray-200 text-gray-700 hover:bg-gray-50 text-sm py-2.5 rounded-lg"
