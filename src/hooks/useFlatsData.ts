@@ -45,6 +45,28 @@ function getCacheKey(options: UseFlatsDataOptions): string {
   });
 }
 
+// Heuristic broker detector based on title/tags text
+function detectIsBrokerFromFlat(flat: Flat): boolean {
+  const text = [flat.title, ...(flat.tags || [])].join(" ").toLowerCase();
+  if (
+    text.includes("no brokerage") ||
+    text.includes("no broker") ||
+    text.includes("owner") ||
+    text.includes("direct owner")
+  ) {
+    return false; // likely owner/no broker
+  }
+  if (
+    text.includes("broker") ||
+    text.includes("brokerage") ||
+    text.includes("agent")
+  ) {
+    return true;
+  }
+  // Default: treat as no broker unless explicitly marked as broker
+  return false;
+}
+
 // No mock data - only real database data will be used
 
 export function useFlatsData(
@@ -143,22 +165,17 @@ export function useFlatsData(
         );
       }
 
-      // Broker filter mapping ('No Broker' vs 'Broker')
+      // Broker filter mapping ('No Broker' vs 'Broker') with heuristics
       if (normalizedFilters.broker?.length) {
         const wantsNoBroker = normalizedFilters.broker.includes("No Broker");
         const wantsBroker = normalizedFilters.broker.includes("Broker");
         if (wantsNoBroker && !wantsBroker) {
           filtered = filtered.filter(
-            (flat: Flat) =>
-              !flat.tags.some((tag: string) =>
-                tag.toLowerCase().includes("broker")
-              )
+            (flat: Flat) => !detectIsBrokerFromFlat(flat)
           );
         } else if (wantsBroker && !wantsNoBroker) {
           filtered = filtered.filter((flat: Flat) =>
-            flat.tags.some((tag: string) =>
-              tag.toLowerCase().includes("broker")
-            )
+            detectIsBrokerFromFlat(flat)
           );
         }
       }
