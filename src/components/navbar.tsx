@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Bookmark, FileText, Settings, BarChart3 } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Bell, Home, Users, Bookmark, FileText, Settings, BarChart3 } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -33,7 +33,7 @@ export default function Navbar() {
   const router = useRouter()
   const isFlatmatesSection = pathname?.startsWith('/flatmates')
   const ctaHref = isFlatmatesSection ? '/flatmates/create-profile' : '/add-listing'
-  const ctaLabel = isFlatmatesSection ? 'Add Your Profile' : 'Add Listing'
+  const ctaLabel = 'Add' // Consistent CTA label to avoid layout shifts
   const [isBroker, setIsBroker] = useState(false)
   const totalUnread = useMemo(() => chatList.reduce((acc, chat) => acc + chat.unread_count, 0), [chatList])
 
@@ -173,44 +173,73 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Desktop Auth Buttons */}
+          {/* Desktop Right Group: utilities (icons) → primary CTA → avatar */}
           <div className="hidden md:flex items-center space-x-3">
-            {user && (
+            {/* Utility icons */}
+            <div className="flex items-center space-x-2">
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  aria-label="Open messages"
+                  className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                >
+                  <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                  {totalUnread > 0 && (
+                    <>
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/40 animate-ping" />
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center z-10">
+                        {Math.min(totalUnread, 9)}
+                      </span>
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleSidebar}
-                aria-label="Open messages"
+                aria-label="Notifications"
+                onClick={() => router.push('/notifications')}
                 className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
               >
-                <MessageCircle className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
-                {totalUnread > 0 && (
-                  <>
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/40 animate-ping" />
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center z-10">
-                      {Math.min(totalUnread, 9)}
-                    </span>
-                  </>
-                )}
+                <Bell className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+                <span className="sr-only">Notifications</span>
               </Button>
-            )}
-            
-            <Button
-              aria-label={ctaLabel}
-              className="group relative bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-full px-5 h-11 transition-all duration-300 shadow-sm hover:shadow-lg border-0 overflow-hidden"
-              onClick={() => {
-                if (user) {
-                  router.push(ctaHref)
-                } else {
-                  setShowLoginModal(true)
-                }
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out"></div>
-              <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
-              <span className="relative z-10">{ctaLabel}</span>
-            </Button>
-            
+            </div>
+
+            {/* Primary CTA: consistent Add dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label={ctaLabel}
+                  className="group relative bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-full px-5 h-11 transition-all duration-300 shadow-sm hover:shadow-lg border-0 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out"></div>
+                  <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300 relative z-10" />
+                  <span className="relative z-10">{ctaLabel}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (user) router.push('/add-listing'); else setShowLoginModal(true)
+                  }}
+                  className="cursor-pointer"
+                >
+                  Add Listing
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (user) router.push('/flatmates/create-profile'); else setShowLoginModal(true)
+                  }}
+                  className="cursor-pointer"
+                >
+                  Add Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+ 
             {loading ? (
               <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
             ) : user ? (
@@ -278,6 +307,20 @@ export default function Navbar() {
                   <DropdownMenuItem 
                     onClick={(e) => {
                       e.preventDefault()
+                      router.push('/insights')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                        <BarChart3 className="h-4 w-4 text-indigo-600" />
+                      </div>
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">{isBroker ? 'Market Insights' : 'Insights'}</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
                       router.push('/saved')
                     }}
                     className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
@@ -303,14 +346,14 @@ export default function Navbar() {
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">My Listings</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                  {/* <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
                     <div className="flex items-center gap-2 w-full">
                       <div className="p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors">
                         <Settings className="h-4 w-4 text-gray-600" />
                       </div>
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Settings</span>
                     </div>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
                   <DropdownMenuItem 
                     onClick={handleSignOut}

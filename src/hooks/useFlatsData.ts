@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase, type Flat } from "@/lib/supabase";
+import { normalizeFiltersForData, normalizeText } from "@/lib/filterUtils";
 
 interface UseFlatsDataOptions {
   pageSize?: number;
@@ -44,6 +45,28 @@ function getCacheKey(options: UseFlatsDataOptions): string {
   });
 }
 
+// Heuristic broker detector based on title/tags text
+function detectIsBrokerFromFlat(flat: Flat): boolean {
+  const text = [flat.title, ...(flat.tags || [])].join(" ").toLowerCase();
+  if (
+    text.includes("no brokerage") ||
+    text.includes("no broker") ||
+    text.includes("owner") ||
+    text.includes("direct owner")
+  ) {
+    return false; // likely owner/no broker
+  }
+  if (
+    text.includes("broker") ||
+    text.includes("brokerage") ||
+    text.includes("agent")
+  ) {
+    return true;
+  }
+  // Default: treat as no broker unless explicitly marked as broker
+  return false;
+}
+
 // No mock data - only real database data will be used
 
 export function useFlatsData(
@@ -67,6 +90,12 @@ export function useFlatsData(
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastRequestRef = useRef<string>("");
 
+  // Normalize incoming filters so the data layer sees a consistent shape
+  const normalizedFilters = useMemo(
+    () => normalizeFiltersForData(filters || {}),
+    [filters]
+  );
+
   // Apply filters to flats data
   const applyFilters = useCallback(
     (data: Flat[]): Flat[] => {
@@ -87,51 +116,83 @@ export function useFlatsData(
         );
       }
 
-      // Apply filters
-      if (filters.price?.length) {
+      // Apply budget range if provided from FilterBar (budget_min/budget_max)
+      const minStr = normalizedFilters.budget_min?.[0];
+      const maxStr = normalizedFilters.budget_max?.[0];
+      const minBudget = minStr ? Number(minStr) : undefined;
+      const maxBudget = maxStr ? Number(maxStr) : undefined;
+      if (minBudget !== undefined || maxBudget !== undefined) {
         filtered = filtered.filter((flat: Flat) => {
-          return filters.price.some((priceRange: string) => {
-            switch (priceRange) {
-              case "< ₹15k":
-                return flat.rent < 15000;
-              case "₹15k-25k":
-                return flat.rent >= 15000 && flat.rent <= 25000;
-              case "₹25k-40k":
-                return flat.rent >= 25000 && flat.rent <= 40000;
-              case "> ₹40k":
-                return flat.rent > 40000;
-              default:
-                return true;
-            }
-          });
+          const meetsMin = minBudget === undefined || flat.rent >= minBudget;
+          const meetsMax = maxBudget === undefined || flat.rent <= maxBudget;
+          return meetsMin && meetsMax;
         });
       }
 
-      if (filters.room_type?.length) {
+      // BHK filter: normalized compare so "2BHK" equals "2 BHK"
+      if (normalizedFilters.bhk?.length) {
+        const allowed = new Set(
+          normalizedFilters.bhk.map((label: string) => normalizeText(label))
+        );
         filtered = filtered.filter((flat: Flat) =>
-          filters.room_type.includes(flat.room_type)
+          allowed.has(normalizeText(flat.room_type))
         );
       }
 
-      if (filters.furnishing?.length) {
+      // Amenities and other tag-like filters from 'amenities'
+      if (normalizedFilters.amenities?.length) {
         filtered = filtered.filter((flat: Flat) =>
-          filters.furnishing.some((furnishing: string) =>
+          normalizedFilters.amenities!.some((amenity: string) =>
             flat.tags.some((tag: string) =>
-              tag.toLowerCase().includes(furnishing.toLowerCase())
+              tag.toLowerCase().includes(amenity.toLowerCase())
             )
           )
         );
       }
 
-      if (filters.pets?.length && filters.pets.includes("true")) {
+      // Locality mapping to area or city/state string contains
+      if (normalizedFilters.locality?.length) {
+        const searchTerms = normalizedFilters.locality.map((s: string) =>
+          normalizeText(s)
+        );
         filtered = filtered.filter((flat: Flat) =>
-          flat.tags.some((tag: string) => tag.toLowerCase().includes("pet"))
+          searchTerms.some(
+            (term: string) =>
+              normalizeText(flat.area).includes(term) ||
+              normalizeText(flat.city).includes(term) ||
+              normalizeText(flat.state).includes(term)
+          )
+        );
+      }
+
+      // Broker filter mapping ('No Broker' vs 'Broker') with heuristics
+      if (normalizedFilters.broker?.length) {
+        const wantsNoBroker = normalizedFilters.broker.includes("No Broker");
+        const wantsBroker = normalizedFilters.broker.includes("Broker");
+        if (wantsNoBroker && !wantsBroker) {
+          filtered = filtered.filter(
+            (flat: Flat) => !detectIsBrokerFromFlat(flat)
+          );
+        } else if (wantsBroker && !wantsNoBroker) {
+          filtered = filtered.filter((flat: Flat) =>
+            detectIsBrokerFromFlat(flat)
+          );
+        }
+      }
+
+      // Gender filter mapping if present
+      if (normalizedFilters.gender?.length) {
+        const desired = new Set(
+          normalizedFilters.gender.map((g: string) => g.toLowerCase())
+        );
+        filtered = filtered.filter((flat: Flat) =>
+          flat.tags.some((tag: string) => desired.has(tag.toLowerCase()))
         );
       }
 
       return filtered;
     },
-    [searchLocation, searchArea, filters]
+    [searchLocation, searchArea, normalizedFilters]
   );
 
   // Fetch data from API or cache
@@ -156,7 +217,11 @@ export function useFlatsData(
         setError(null);
 
         // Check cache first
-        const cacheKey = getCacheKey({ searchLocation, searchArea, filters });
+        const cacheKey = getCacheKey({
+          searchLocation,
+          searchArea,
+          filters: normalizedFilters,
+        });
         const cached = flatsCache.get(cacheKey);
         const now = Date.now();
 
@@ -221,7 +286,9 @@ export function useFlatsData(
           id: listing.id,
           owner_id: listing.user_id,
           title: listing.title,
-          location: listing.area ? `${listing.area}, ${listing.city}, ${listing.state}` : `${listing.city}, ${listing.state}`,
+          location: listing.area
+            ? `${listing.area}, ${listing.city}, ${listing.state}`
+            : `${listing.city}, ${listing.state}`,
           area: listing.area,
           city: listing.city,
           state: listing.state,
@@ -299,7 +366,7 @@ export function useFlatsData(
         }
       }
     },
-    [pageSize, searchLocation, searchArea, filters, applyFilters]
+    [pageSize, searchLocation, searchArea, normalizedFilters, applyFilters]
   );
 
   // Load more data (pagination)
@@ -313,11 +380,15 @@ export function useFlatsData(
     setIsRefreshing(true);
 
     // Clear cache for current parameters
-    const cacheKey = getCacheKey({ searchLocation, searchArea, filters });
+    const cacheKey = getCacheKey({
+      searchLocation,
+      searchArea,
+      filters: normalizedFilters,
+    });
     flatsCache.delete(cacheKey);
 
     await fetchFlats(0, true);
-  }, [fetchFlats, searchLocation, searchArea, filters]);
+  }, [fetchFlats, searchLocation, searchArea, normalizedFilters]);
 
   // Initial load and when dependencies change
   useEffect(() => {

@@ -68,10 +68,9 @@ interface PriceRangeChartProps {
 }
 
 export function PriceRangeChart({ data }: PriceRangeChartProps) {
-  const chartData = Object.entries(data).map(([range, count], index) => ({
+  const chartData = Object.entries(data).map(([range, count]) => ({
     range,
-    count,
-    fill: COLORS[index % COLORS.length]
+    count
   }))
 
   return (
@@ -91,11 +90,7 @@ export function PriceRangeChart({ data }: PriceRangeChartProps) {
             formatter={(value) => [value, 'Searches']}
             labelStyle={{ color: '#374151' }}
           />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-          </Bar>
+          <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -110,10 +105,9 @@ export function LocationChart({ data }: LocationChartProps) {
   console.log('LocationChart received data:', data) // Temporary debug
 
   const topLocations = data.slice(0, 6) // Show top 6 locations
-  const chartData = topLocations.map((item, index) => ({
+  const chartData = topLocations.map((item) => ({
     name: item.area,
-    searches: item.search_count,
-    fill: COLORS[index % COLORS.length]
+    searches: item.search_count
   }))
 
   console.log('LocationChart chartData:', chartData) // Temporary debug
@@ -151,11 +145,7 @@ export function LocationChart({ data }: LocationChartProps) {
             formatter={(value) => [value, 'Searches']}
             labelStyle={{ color: '#374151' }}
           />
-          <Bar dataKey="searches" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-          </Bar>
+          <Bar dataKey="searches" fill="#3B82F6" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
