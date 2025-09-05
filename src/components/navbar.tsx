@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Plus, LogOut, UserIcon, MessageCircle, Home, Users, Bookmark, FileText, Settings, BarChart3 } from 'lucide-react'
+import { Menu, Plus, LogOut, UserIcon, MessageCircle, Bell, Home, Users, Bookmark, FileText, Settings, BarChart3 } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -194,6 +194,16 @@ export default function Navbar() {
                 )}
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Notifications"
+              onClick={() => router.push('/notifications')}
+              className="group relative h-11 w-11 rounded-full bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              <Bell className="h-5 w-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
+              <span className="sr-only">Notifications</span>
+            </Button>
             
             <Button
               aria-label={ctaLabel}
@@ -275,22 +285,20 @@ export default function Navbar() {
                       </div>
                     </DropdownMenuItem>
                   )}
-                  {!isBroker && (
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.preventDefault()
-                        router.push('/insights')
-                      }}
-                      className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="p-1.5 rounded-md bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                          <BarChart3 className="h-4 w-4 text-indigo-600" />
-                        </div>
-                        <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Insights</span>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push('/insights')
+                    }}
+                    className="group rounded-lg px-2 py-2 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="p-1.5 rounded-md bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                        <BarChart3 className="h-4 w-4 text-indigo-600" />
                       </div>
-                    </DropdownMenuItem>
-                  )}
+                      <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">{isBroker ? 'Market Insights' : 'Insights'}</span>
+                    </div>
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={(e) => {
                       e.preventDefault()
@@ -319,14 +327,14 @@ export default function Navbar() {
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">My Listings</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
+                  {/* <DropdownMenuItem className="group rounded-xl px-3 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100/50 focus:bg-gradient-to-r focus:from-purple-50 focus:to-purple-100/50">
                     <div className="flex items-center gap-2 w-full">
                       <div className="p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors">
                         <Settings className="h-4 w-4 text-gray-600" />
                       </div>
                       <span className="font-medium text-gray-800 group-hover:text-gray-900 text-sm">Settings</span>
                     </div>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
                   <DropdownMenuItem 
                     onClick={handleSignOut}

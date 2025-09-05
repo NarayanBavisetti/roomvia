@@ -136,16 +136,18 @@ export default function MarketInsightsPage() {
     if (selectedCity) {
       fetchMarketInsights()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity])
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const processMarketData = async (listings: any[], flatmates: any[]): Promise<MarketInsights> => {
     // City Stats
     const totalListings = listings.length
-    const avgRent = listings.length > 0 ? Math.round(listings.reduce((acc, l) => acc + (l.rent || 0), 0) / listings.length) : 0
+    const avgRent = listings.length > 0 ? Math.round(listings.reduce((acc, l: any) => acc + (l.rent || 0), 0) / listings.length) : 0
     
     // Area-wise analysis
     const areaStats: Record<string, { rents: number[], count: number, totalSqft: number }> = {}
-    listings.forEach(listing => {
+    listings.forEach((listing: any) => {
       const area = listing.area || 'Others'
       if (!areaStats[area]) {
         areaStats[area] = { rents: [], count: 0, totalSqft: 0 }
@@ -170,7 +172,7 @@ export default function MarketInsightsPage() {
 
     // BHK Distribution
     const bhkStats: Record<string, { count: number, rents: number[] }> = {}
-    listings.forEach(listing => {
+    listings.forEach((listing: any) => {
       const bhk = listing.property_type || 'Other'
       if (!bhkStats[bhk]) {
         bhkStats[bhk] = { count: 0, rents: [] }
@@ -189,7 +191,7 @@ export default function MarketInsightsPage() {
 
     // Amenities Analysis
     const amenityStats: Record<string, { count: number, rents: number[] }> = {}
-    listings.forEach(listing => {
+    listings.forEach((listing: any) => {
       if (listing.highlights && Array.isArray(listing.highlights)) {
         listing.highlights.forEach((amenity: string) => {
           if (!amenityStats[amenity]) {
@@ -220,7 +222,7 @@ export default function MarketInsightsPage() {
     ]
 
     const priceDistribution = priceRanges.map(range => {
-      const count = listings.filter(l => l.rent >= range.min && l.rent < range.max).length
+      const count = listings.filter((l: any) => l.rent >= range.min && l.rent < range.max).length
       return {
         range: range.range,
         count,
@@ -230,7 +232,7 @@ export default function MarketInsightsPage() {
 
     // Gender Preferences Analysis from flatmates
     const genderAreas: Record<string, { male: number, female: number, any: number }> = {}
-    flatmates.forEach(flatmate => {
+    flatmates.forEach((flatmate: any) => {
       const preferredAreas = flatmate.preferred_locations || []
       const gender = flatmate.flatmate_preferences?.gender || 'Any'
       
@@ -276,7 +278,7 @@ export default function MarketInsightsPage() {
     const smokingPrefs: Record<string, number> = {}
     const petPrefs: Record<string, number> = {}
 
-    flatmates.forEach(flatmate => {
+    flatmates.forEach((flatmate: any) => {
       const food = flatmate.food_preference || 'Any'
       const smoking = flatmate.non_smoker ? 'Non-smoker' : 'Smoker allowed'
       const pets = 'Pets: ' + (flatmate.flatmate_preferences?.pets ? 'Allowed' : 'Not allowed')
@@ -312,7 +314,9 @@ export default function MarketInsightsPage() {
       aiSummary
     }
   }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generateAISummary = async (data: any): Promise<string> => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -500,7 +504,7 @@ export default function MarketInsightsPage() {
                         />
                         <YAxis tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
                         <Tooltip 
-                          formatter={(value, name) => [`₹${value.toLocaleString()}`, 'Avg Rent']}
+                          formatter={(value) => [`₹${value.toLocaleString()}`, 'Avg Rent']}
                           labelStyle={{ color: '#374151' }}
                         />
                         <Bar dataKey="avgRent" fill="#3B82F6" radius={[4, 4, 0, 0]} />
@@ -527,12 +531,12 @@ export default function MarketInsightsPage() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ bhk, count, percent }) => `${bhk}: ${count} (${(percent * 100).toFixed(1)}%)`}
+                          label={({ bhk, count, percent }) => `${bhk}: ${count} (${((percent || 0) * 100).toFixed(1)}%)`}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="count"
                         >
-                          {insights.bhkDistribution.map((entry, index) => (
+                          {insights.bhkDistribution.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -556,7 +560,7 @@ export default function MarketInsightsPage() {
                 <CardContent>
                   {insights.genderPreferences.femaleAreas.length > 0 ? (
                     <div className="space-y-3">
-                      {insights.genderPreferences.femaleAreas.map((item, index) => (
+                      {insights.genderPreferences.femaleAreas.map((item) => (
                         <div key={item.area} className="flex items-center justify-between">
                           <span className="font-medium text-gray-900 text-sm">{item.area}</span>
                           <div className="flex items-center gap-2">
@@ -587,7 +591,7 @@ export default function MarketInsightsPage() {
                 <CardContent>
                   {insights.genderPreferences.maleAreas.length > 0 ? (
                     <div className="space-y-3">
-                      {insights.genderPreferences.maleAreas.map((item, index) => (
+                      {insights.genderPreferences.maleAreas.map((item) => (
                         <div key={item.area} className="flex items-center justify-between">
                           <span className="font-medium text-gray-900 text-sm">{item.area}</span>
                           <div className="flex items-center gap-2">
@@ -618,7 +622,7 @@ export default function MarketInsightsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {insights.priceRanges.map((range, index) => (
+                    {insights.priceRanges.map((range) => (
                       <div key={range.range} className="flex items-center justify-between">
                         <span className="font-medium text-gray-900 text-sm">{range.range}</span>
                         <div className="flex items-center gap-2">
@@ -724,7 +728,7 @@ interface AIInsightsSectionsProps {
   city: string
 }
 
-function AIInsightsSections({ aiSummary, city }: AIInsightsSectionsProps) {
+function AIInsightsSections({ aiSummary }: AIInsightsSectionsProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
   const toggleSection = (sectionKey: string) => {
