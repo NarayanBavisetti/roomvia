@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MapPin, Bookmark, MessageCircle } from 'lucide-react'
+import { MapPin, Heart, MessageCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -179,14 +179,13 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
           </div>
         )}
 
-        {/* Save icon */}
-        <button
-          onClick={handleToggleSave}
-          aria-pressed={isSaved}
-          className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 shadow-sm hover:scale-105"
-        >
-          <Bookmark className={`h-3.5 w-3.5 transition-colors ${isSaved ? 'text-purple-500 fill-current' : 'text-gray-600 hover:text-purple-400'}`} />
-        </button>
+<button
+  onClick={handleToggleSave}
+  aria-pressed={isSaved}
+  className="absolute top-2 right-2 p-1 hover:scale-110 transition-all duration-200"
+>
+  <Heart className={`h-5 w-5 transition-all duration-200 stroke-white stroke-2 ${isSaved ? 'text-red-500 fill-current drop-shadow-lg' : 'text-gray-400 fill-current'}`} />
+</button>
 
         {/* Dots indicator */}
         {flat.images && flat.images.length > 1 && (

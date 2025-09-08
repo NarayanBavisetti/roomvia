@@ -17,7 +17,7 @@ import {
   TrendingUp, 
   Eye, 
   MessageCircle, 
-  Bookmark, 
+  Heart, 
   Phone, 
   Calendar,
   MapPin,
@@ -319,7 +319,7 @@ export default function BrokerAnalyticsPage() {
                               <span className="text-sm font-medium">{post.views}</span>
                             </div>
                             <div className="flex items-center justify-center gap-2">
-                              <Bookmark className="h-4 w-4 text-green-500" />
+                              <Heart className="h-4 w-4 text-green-500" />
                               <span className="text-sm font-medium">{post.saves}</span>
                             </div>
                             <div className="flex items-center justify-center gap-2">

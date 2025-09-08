@@ -27,7 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Share,
-  Bookmark
+  Heart
 } from 'lucide-react'
 
 interface ListingDetail {
@@ -358,7 +358,7 @@ export default function ListingDetailPage() {
                       onClick={handleToggleSave}
                       className="text-gray-400 hover:text-purple-600 p-2 h-8 w-8"
                     >
-                      <Bookmark className={`h-4 w-4 ${isLiked ? 'text-purple-600 fill-current' : ''}`} />
+                      <Heart className={`h-4 w-4 ${isLiked ? 'text-red-500 fill-current' : ''}`} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -536,7 +536,7 @@ export default function ListingDetailPage() {
                           {saving ? (
                             <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <Bookmark className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current text-purple-700' : ''}`} />
+                            <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current text-red-500' : ''}`} />
                           )}
                           {isLiked ? 'Saved' : 'Save'}
                         </Button>
