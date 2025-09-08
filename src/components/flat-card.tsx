@@ -40,14 +40,6 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
     checkSaveStatus()
   }, [user, flat.id])
 
-  // Auto-advance slideshow if multiple images
-  useEffect(() => {
-    if (!flat.images || flat.images.length <= 1) return
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % flat.images!.length)
-    }, 3500)
-    return () => clearInterval(interval)
-  }, [flat.images])
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -171,6 +163,7 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
             </button>
           </>
         )}
+
         
         {/* Loading placeholder */}
         {!imageLoaded && (
@@ -186,7 +179,6 @@ export default function FlatCard({ flat, onClick }: FlatCardProps) {
 >
   <Heart className={`h-5 w-5 transition-all duration-200 stroke-white stroke-2 ${isSaved ? 'text-red-500 fill-current drop-shadow-lg' : 'text-gray-400 fill-current'}`} />
 </button>
-
         {/* Dots indicator */}
         {flat.images && flat.images.length > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
