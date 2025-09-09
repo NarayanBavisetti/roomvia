@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { savesApi, type SaveItem } from '@/lib/saves'
 import { useAuth } from '@/contexts/auth-context'
-import { Bookmark, Home, Users, Trash2, ExternalLink, AlertCircle } from 'lucide-react'
+import { Heart, Home, Users, Trash2, ExternalLink, AlertCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function SavedPage() {
@@ -135,8 +135,8 @@ export default function SavedPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-purple-100 rounded-xl">
-                  <Bookmark className="h-6 w-6 text-purple-600" />
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <Heart className="h-6 w-6 text-red-500" />
                 </div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                   Your Saved Items

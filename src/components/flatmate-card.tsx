@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { 
   MapPin,
   Building2,
-  Bookmark,
+  Heart,
   Wifi,
   Car,
   Dumbbell,
@@ -122,19 +122,14 @@ export default function FlatmateCard({ flatmate, onConnect }: FlatmateCardProps)
 
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200 h-full flex flex-col">
-      {/* Save button - consistent overlay position */}
-      <button
-        onClick={handleToggleSave}
-        aria-pressed={isSaved}
-        title={isSaved ? 'Unsave' : 'Save'}
-        className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 hover:bg-white transition-all duration-200 shadow-sm hover:scale-105 z-10"
-      >
-        {saving ? (
-          <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <Bookmark className={`h-4 w-4 transition-colors ${isSaved ? 'text-purple-600 fill-current' : 'text-gray-600 hover:text-purple-400'}`} />
-        )}
-      </button>
+
+<button
+  onClick={handleToggleSave}
+  aria-pressed={isSaved}
+  className="absolute top-2 right-2 p-1 hover:scale-110 transition-all duration-200"
+>
+  <Heart className={`h-5 w-5 transition-all duration-200 stroke-white stroke-2 ${isSaved ? 'text-red-500 fill-current drop-shadow-lg' : 'text-gray-400 fill-current'}`} />
+</button>
 
       <div className="p-5 flex-1 flex flex-col">
         {/* Header */}

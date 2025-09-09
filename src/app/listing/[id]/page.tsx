@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import ImageGallery from '@/components/image-gallery'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import { useChat } from '@/contexts/chat-context'
@@ -27,7 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Share,
-  Bookmark
+  Heart
 } from 'lucide-react'
 
 interface ListingDetail {
@@ -76,7 +75,7 @@ export default function ListingDetailPage() {
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [, setCurrentImageIndex] = useState(0)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
   const [saving, setSaving] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -182,14 +181,7 @@ export default function ListingDetailPage() {
   }
 
 
-  // Autoplay for image slideshow
-  useEffect(() => {
-    if (!listing?.images || listing.images.length <= 1) return
-    const interval = setInterval(() => {
-      setCurrentImageIndex(prev => (prev + 1) % listing.images.length)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [listing?.images])
+
 
   const handleChatClick = () => {
     if (!user) {
@@ -304,9 +296,88 @@ export default function ListingDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Left Column - Images and Details */}
             <div className="lg:col-span-3 space-y-5">
-              {/* Collage Image Gallery */}
-              <div className="rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                <ImageGallery images={images.map(img => img.url)} alt={listing.title} />
+              {/* Main Image Gallery */}
+              <div className="space-y-4">
+                {/* Main Image */}
+                <div className="relative rounded-xl overflow-hidden shadow-lg border border-gray-100 aspect-[4/3]">
+                  {images.length > 0 && (
+                    <Image
+                      src={images[currentImageIndex]?.url || images[0].url}
+                      alt={listing.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 66vw"
+                    />
+                  )}
+                  
+                  {/* Navigation arrows for main image */}
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-all duration-200 z-10"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setCurrentImageIndex(prev => (prev + 1) % images.length)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-all duration-200 z-10"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Image counter */}
+                  {images.length > 1 && (
+                    <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                      {currentImageIndex + 1} / {images.length}
+                    </div>
+                  )}
+                  
+                  {/* Expand button */}
+                  <button
+                    onClick={() => {
+                      setLightboxIndex(currentImageIndex)
+                      setIsLightboxOpen(true)
+                    }}
+                    className="absolute bottom-4 left-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-200"
+                  >
+                    <Maximize className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                {/* Thumbnail Carousel */}
+                {images.length > 1 && (
+                  <div className="relative">
+                    <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {images.map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentImageIndex(index)}
+                          className={`relative flex-shrink-0 rounded-lg overflow-hidden transition-all duration-200 ${ 
+                            currentImageIndex === index 
+                              ? 'ring-3 ring-purple-500 ring-offset-2' 
+                              : 'hover:opacity-80'
+                          }`}
+                        >
+                          <div className="w-20 h-16 md:w-24 md:h-20">
+                            <Image
+                              src={image.url}
+                              alt={`${listing.title} - Image ${index + 1}`}
+                              fill
+                              className="object-cover"
+                              sizes="100px"
+                            />
+                          </div>
+                          {currentImageIndex !== index && (
+                            <div className="absolute inset-0 bg-black/20"></div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Lightbox */}
@@ -358,7 +429,7 @@ export default function ListingDetailPage() {
                       onClick={handleToggleSave}
                       className="text-gray-400 hover:text-purple-600 p-2 h-8 w-8"
                     >
-                      <Bookmark className={`h-4 w-4 ${isLiked ? 'text-purple-600 fill-current' : ''}`} />
+                      <Heart className={`h-4 w-4 ${isLiked ? 'text-red-500 fill-current' : ''}`} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -536,7 +607,7 @@ export default function ListingDetailPage() {
                           {saving ? (
                             <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <Bookmark className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current text-purple-700' : ''}`} />
+                            <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current text-red-500' : ''}`} />
                           )}
                           {isLiked ? 'Saved' : 'Save'}
                         </Button>
