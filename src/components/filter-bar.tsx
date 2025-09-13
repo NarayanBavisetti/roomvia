@@ -123,6 +123,7 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
   const [moreFiltersState, setMoreFiltersState] = useState<Record<string, string[]>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
+  const hasInitializedRef = useRef(false)
 
   // Use the saved filters hook
   const {
@@ -137,11 +138,12 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
     debounceDelay: 1000
   })
 
-  // Auto-apply most recent filter when saved filters are loaded
+  // Load saved filters only once on mount to prevent flickering
   useEffect(() => {
-    if (savedFilters.length > 0) {
+    if (savedFilters.length > 0 && !hasInitializedRef.current) {
+      hasInitializedRef.current = true
       const mostRecentFilter = savedFilters[0]
-      console.log('Auto-applying most recent filter:', mostRecentFilter)
+      console.log('Loading saved filters on mount:', mostRecentFilter)
       applyFiltersSilently(mostRecentFilter)
     }
   }, [savedFilters]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,19 +197,19 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
       }
       setActiveFilters(newFilters)
       // Include budget range alongside filters for consumers
-      onFiltersChange?.({ ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState })
-      
+      const combinedFilters = { ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState }
+      onFiltersChange?.(combinedFilters)
+
       // Auto-save filters with freshly computed state if user is logged in
       if (user) {
-        const merged = { ...newFilters, ...moreFiltersState }
-        saveCurrentFilters(merged)
+        saveCurrentFilters(combinedFilters)
       }
     } else if (value) {
       const newFilters = { ...activeFilters }
       if (!newFilters[filterId]) {
         newFilters[filterId] = []
       }
-      
+
       if (newFilters[filterId].includes(value)) {
         newFilters[filterId] = newFilters[filterId].filter(v => v !== value)
         if (newFilters[filterId].length === 0) {
@@ -216,14 +218,14 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
       } else {
         newFilters[filterId] = [...newFilters[filterId], value]
       }
-      
+
       setActiveFilters(newFilters)
-      onFiltersChange?.({ ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState })
-      
+      const combinedFilters = { ...newFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])], ...moreFiltersState }
+      onFiltersChange?.(combinedFilters)
+
       // Auto-save filters with freshly computed state if user is logged in
       if (user) {
-        const merged = { ...newFilters, ...moreFiltersState }
-        saveCurrentFilters(merged)
+        saveCurrentFilters(combinedFilters)
       }
     }
     // Keep dropdown open for multiple selections - don't close it
@@ -258,7 +260,7 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
     if (!newMoreFilters[category]) {
       newMoreFilters[category] = []
     }
-    
+
     if (category === 'amenities') {
       // Multi-select for amenities
       if (newMoreFilters[category].includes(value)) {
@@ -277,15 +279,15 @@ export default function FilterBar({ onFiltersChange, searchLocation, searchArea 
         newMoreFilters[category] = [value]
       }
     }
-    
+
     setMoreFiltersState(newMoreFilters)
     // Combine with main filters for callback and include budget
-    const combined = { ...activeFilters, ...newMoreFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])] }
-    onFiltersChange?.(combined)
-    
+    const combinedFilters = { ...activeFilters, ...newMoreFilters, budget_min: [String(budgetRange[0])], budget_max: [String(budgetRange[1])] }
+    onFiltersChange?.(combinedFilters)
+
     // Auto-save filters with freshly computed state if user is logged in
     if (user) {
-      saveCurrentFilters(combined)
+      saveCurrentFilters(combinedFilters)
     }
   }
 
